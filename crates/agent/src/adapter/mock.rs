@@ -1,5 +1,5 @@
 use std::collections::HashMap;
-use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
@@ -10,7 +10,7 @@ use proto_gen::{
     AgentEvent, ApprovalRequest, ApprovalType, CodexOutput, OutputType, TaskStatus,
     TaskStatusUpdate,
 };
-use tokio::sync::{broadcast, Mutex};
+use tokio::sync::{broadcast, oneshot, Mutex};
 use tokio::time::sleep;
 use uuid::Uuid;
 
@@ -29,8 +29,23 @@ struct MockAdapterInner {
     event_tx: broadcast::Sender<AgentEvent>,
     started: AtomicBool,
     prompt_count: AtomicU32,
+    next_task_id: AtomicU64,
     session_statuses: Mutex<HashMap<String, i32>>,
-    pending_approvals: Mutex<HashMap<String, String>>,
+    active_tasks: Mutex<HashMap<u64, TaskControl>>,
+    pending_approvals: Mutex<HashMap<String, PendingApproval>>,
+}
+
+#[derive(Debug)]
+struct TaskControl {
+    session_id: String,
+    cancel_flag: Arc<AtomicBool>,
+}
+
+#[derive(Debug)]
+struct PendingApproval {
+    session_id: String,
+    task_id: u64,
+    response_tx: oneshot::Sender<bool>,
 }
 
 impl MockAdapter {
@@ -41,7 +56,9 @@ impl MockAdapter {
                 event_tx,
                 started: AtomicBool::new(false),
                 prompt_count: AtomicU32::new(0),
+                next_task_id: AtomicU64::new(0),
                 session_statuses: Mutex::new(HashMap::new()),
+                active_tasks: Mutex::new(HashMap::new()),
                 pending_approvals: Mutex::new(HashMap::new()),
             }),
         }
@@ -67,12 +84,20 @@ impl AgentAdapter for MockAdapter {
         );
 
         let prompt_index = self.inner.prompt_count.fetch_add(1, Ordering::SeqCst) + 1;
+        let task_id = self.inner.next_task_id.fetch_add(1, Ordering::SeqCst) + 1;
         let inner = Arc::clone(&self.inner);
         let session_id = session_id.to_owned();
         let prompt = prompt.to_owned();
+        let cancel_flag = Arc::new(AtomicBool::new(false));
+
+        self.inner
+            .register_task(task_id, session_id.clone(), Arc::clone(&cancel_flag))
+            .await;
 
         tokio::spawn(async move {
-            inner.run_prompt(prompt_index, session_id, prompt).await;
+            inner
+                .run_prompt(task_id, prompt_index, session_id, prompt, cancel_flag)
+                .await;
         });
 
         Ok(())
@@ -84,20 +109,16 @@ impl AgentAdapter for MockAdapter {
             "mock adapter is not running"
         );
 
-        let session_id = {
+        let pending_approval = {
             let mut approvals = self.inner.pending_approvals.lock().await;
             approvals.remove(approval_id)
         };
 
-        if let Some(session_id) = session_id {
-            let summary = if approved {
-                "mock approval accepted"
-            } else {
-                "mock approval rejected"
-            };
-            self.inner
-                .emit_status(&session_id, TaskStatus::Running, summary)
-                .await;
+        if let Some(pending_approval) = pending_approval {
+            pending_approval
+                .response_tx
+                .send(approved)
+                .map_err(|_| anyhow::anyhow!("mock approval is no longer active"))?;
             Ok(())
         } else {
             bail!("unknown mock approval id '{approval_id}'")
@@ -110,6 +131,7 @@ impl AgentAdapter for MockAdapter {
             "mock adapter is not running"
         );
 
+        self.inner.cancel_session_tasks(session_id).await;
         self.inner
             .emit_status(session_id, TaskStatus::Cancelled, "mock task cancelled")
             .await;
@@ -138,14 +160,31 @@ impl AgentAdapter for MockAdapter {
 
     async fn stop(&mut self) -> anyhow::Result<()> {
         self.inner.started.store(false, Ordering::SeqCst);
+        self.inner.stop_all_tasks().await;
         self.inner.session_statuses.lock().await.clear();
-        self.inner.pending_approvals.lock().await.clear();
         Ok(())
     }
 }
 
 impl MockAdapterInner {
-    async fn run_prompt(&self, prompt_index: u32, session_id: String, prompt: String) {
+    async fn register_task(&self, task_id: u64, session_id: String, cancel_flag: Arc<AtomicBool>) {
+        self.active_tasks.lock().await.insert(
+            task_id,
+            TaskControl {
+                session_id,
+                cancel_flag,
+            },
+        );
+    }
+
+    async fn run_prompt(
+        &self,
+        task_id: u64,
+        prompt_index: u32,
+        session_id: String,
+        prompt: String,
+        cancel_flag: Arc<AtomicBool>,
+    ) {
         self.emit_status(&session_id, TaskStatus::Running, "mock task started")
             .await;
 
@@ -157,20 +196,36 @@ impl MockAdapterInner {
         } else {
             None
         };
-        let mut emitted_approval_id = None;
 
         for (index, chunk) in chunks.iter().enumerate() {
             sleep(Duration::from_millis(CHUNK_DELAY_MS)).await;
+
+            if self.should_abort(&cancel_flag) {
+                self.finish_task(task_id).await;
+                return;
+            }
+
             self.emit_output(&session_id, chunk.clone(), index + 1 == chunks.len())
                 .await;
 
             if approval_after == Some(index + 1) {
+                let (response_tx, response_rx) = oneshot::channel();
                 let approval_id = Uuid::new_v4().to_string();
-                self.pending_approvals
-                    .lock()
-                    .await
-                    .insert(approval_id.clone(), session_id.clone());
-                emitted_approval_id = Some(approval_id.clone());
+                self.pending_approvals.lock().await.insert(
+                    approval_id.clone(),
+                    PendingApproval {
+                        session_id: session_id.clone(),
+                        task_id,
+                        response_tx,
+                    },
+                );
+
+                if self.should_abort(&cancel_flag) {
+                    self.pending_approvals.lock().await.remove(&approval_id);
+                    self.finish_task(task_id).await;
+                    return;
+                }
+
                 self.emit_status(
                     &session_id,
                     TaskStatus::WaitingApproval,
@@ -178,17 +233,98 @@ impl MockAdapterInner {
                 )
                 .await;
                 self.emit_approval(&session_id, approval_id).await;
+
+                match response_rx.await {
+                    Ok(true) => {
+                        if self.should_abort(&cancel_flag) {
+                            self.finish_task(task_id).await;
+                            return;
+                        }
+
+                        self.emit_status(
+                            &session_id,
+                            TaskStatus::Running,
+                            "mock approval accepted",
+                        )
+                        .await;
+                    }
+                    Ok(false) => {
+                        self.emit_status(
+                            &session_id,
+                            TaskStatus::Cancelled,
+                            "mock approval rejected",
+                        )
+                        .await;
+                        self.emit_status(&session_id, TaskStatus::Idle, "mock adapter is idle")
+                            .await;
+                        self.finish_task(task_id).await;
+                        return;
+                    }
+                    Err(_) => {
+                        self.finish_task(task_id).await;
+                        return;
+                    }
+                }
             }
         }
 
-        if let Some(approval_id) = emitted_approval_id {
-            self.pending_approvals.lock().await.remove(&approval_id);
+        if self.should_abort(&cancel_flag) {
+            self.finish_task(task_id).await;
+            return;
         }
 
         self.emit_status(&session_id, TaskStatus::Completed, "mock task completed")
             .await;
         self.emit_status(&session_id, TaskStatus::Idle, "mock adapter is idle")
             .await;
+        self.finish_task(task_id).await;
+    }
+
+    fn should_abort(&self, cancel_flag: &AtomicBool) -> bool {
+        !self.started.load(Ordering::SeqCst) || cancel_flag.load(Ordering::SeqCst)
+    }
+
+    async fn finish_task(&self, task_id: u64) {
+        self.active_tasks.lock().await.remove(&task_id);
+    }
+
+    async fn cancel_session_tasks(&self, session_id: &str) {
+        let task_ids = {
+            let mut active_tasks = self.active_tasks.lock().await;
+            let task_ids: Vec<u64> = active_tasks
+                .iter()
+                .filter_map(|(task_id, task)| {
+                    if task.session_id == session_id {
+                        task.cancel_flag.store(true, Ordering::SeqCst);
+                        Some(*task_id)
+                    } else {
+                        None
+                    }
+                })
+                .collect();
+
+            for task_id in &task_ids {
+                active_tasks.remove(task_id);
+            }
+
+            task_ids
+        };
+
+        let mut pending_approvals = self.pending_approvals.lock().await;
+        pending_approvals.retain(|_, approval| {
+            approval.session_id != session_id && !task_ids.contains(&approval.task_id)
+        });
+    }
+
+    async fn stop_all_tasks(&self) {
+        let mut active_tasks = self.active_tasks.lock().await;
+        for task in active_tasks.values() {
+            task.cancel_flag.store(true, Ordering::SeqCst);
+        }
+        active_tasks.clear();
+        drop(active_tasks);
+
+        self.pending_approvals.lock().await.clear();
     }
 
     async fn emit_status(&self, session_id: &str, status: TaskStatus, summary: &str) {
