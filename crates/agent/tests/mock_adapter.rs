@@ -211,3 +211,166 @@ async fn cancel_task_prevents_in_flight_task_from_later_reporting_completion() {
         "cancelled prompt should not emit more output or completion"
     );
 }
+
+#[tokio::test]
+async fn stop_cancels_pending_task_without_late_running_after_shutdown() {
+    let mut adapter = MockAdapter::new();
+    adapter.start().await.unwrap();
+    let mut rx = adapter.subscribe();
+
+    adapter
+        .send_prompt("session-stop-pending", "stop before start")
+        .await
+        .unwrap();
+    adapter.stop().await.unwrap();
+    tokio::task::yield_now().await;
+
+    let mut saw_cancelled = false;
+    let mut saw_idle = false;
+    for _ in 0..20 {
+        let event = timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event.evt {
+            Some(Evt::StatusUpdate(update))
+                if update.session_id == "session-stop-pending"
+                    && update.status == TaskStatus::Cancelled as i32 =>
+            {
+                saw_cancelled = true;
+            }
+            Some(Evt::StatusUpdate(update))
+                if update.session_id == "session-stop-pending"
+                    && update.status == TaskStatus::Idle as i32 =>
+            {
+                saw_idle = true;
+                if saw_cancelled {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    assert!(saw_cancelled, "expected cancelled status during stop");
+    assert!(saw_idle, "expected idle status during stop");
+
+    let no_late_running_after_stop = timeout(Duration::from_millis(300), async {
+        loop {
+            let event = rx.recv().await.unwrap();
+            match event.evt {
+                Some(Evt::StatusUpdate(update))
+                    if update.session_id == "session-stop-pending"
+                        && update.status == TaskStatus::Running as i32 =>
+                {
+                    panic!("stopped pending prompt reported running after shutdown")
+                }
+                Some(Evt::StatusUpdate(update))
+                    if update.session_id == "session-stop-pending"
+                        && update.status == TaskStatus::Completed as i32 =>
+                {
+                    panic!("stopped pending prompt reported completion after shutdown")
+                }
+                Some(Evt::CodexOutput(output)) if output.session_id == "session-stop-pending" => {
+                    panic!("stopped pending prompt leaked output after shutdown")
+                }
+                _ => {}
+            }
+        }
+    })
+    .await;
+    assert!(
+        no_late_running_after_stop.is_err(),
+        "stopped pending prompt should not emit running, completion, or output"
+    );
+}
+
+#[tokio::test]
+async fn stop_cancels_active_session_and_emits_terminal_statuses() {
+    let mut adapter = MockAdapter::new();
+    adapter.start().await.unwrap();
+    let mut rx = adapter.subscribe();
+
+    adapter
+        .send_prompt("session-stop-active", "stop while active")
+        .await
+        .unwrap();
+
+    let mut saw_output = false;
+    for _ in 0..20 {
+        let event = timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event.evt {
+            Some(Evt::CodexOutput(output)) if output.session_id == "session-stop-active" => {
+                saw_output = true;
+                break;
+            }
+            _ => {}
+        }
+    }
+
+    assert!(saw_output, "expected task to become active before stop");
+
+    adapter.stop().await.unwrap();
+
+    let mut saw_cancelled = false;
+    let mut saw_idle = false;
+    for _ in 0..20 {
+        let event = timeout(Duration::from_secs(2), rx.recv())
+            .await
+            .unwrap()
+            .unwrap();
+        match event.evt {
+            Some(Evt::StatusUpdate(update))
+                if update.session_id == "session-stop-active"
+                    && update.status == TaskStatus::Cancelled as i32 =>
+            {
+                saw_cancelled = true;
+            }
+            Some(Evt::StatusUpdate(update))
+                if update.session_id == "session-stop-active"
+                    && update.status == TaskStatus::Idle as i32 =>
+            {
+                saw_idle = true;
+                if saw_cancelled {
+                    break;
+                }
+            }
+            _ => {}
+        }
+    }
+
+    assert!(saw_cancelled, "expected cancelled status during stop");
+    assert!(saw_idle, "expected idle status during stop");
+
+    let no_late_events_after_stop = timeout(Duration::from_millis(300), async {
+        loop {
+            let event = rx.recv().await.unwrap();
+            match event.evt {
+                Some(Evt::StatusUpdate(update))
+                    if update.session_id == "session-stop-active"
+                        && update.status == TaskStatus::Running as i32 =>
+                {
+                    panic!("stopped active prompt reported running after shutdown")
+                }
+                Some(Evt::StatusUpdate(update))
+                    if update.session_id == "session-stop-active"
+                        && update.status == TaskStatus::Completed as i32 =>
+                {
+                    panic!("stopped active prompt reported completion after shutdown")
+                }
+                Some(Evt::CodexOutput(output)) if output.session_id == "session-stop-active" => {
+                    panic!("stopped active prompt leaked output after shutdown")
+                }
+                _ => {}
+            }
+        }
+    })
+    .await;
+    assert!(
+        no_late_events_after_stop.is_err(),
+        "stopped active prompt should not emit running, completion, or output"
+    );
+}

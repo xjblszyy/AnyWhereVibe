@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+use std::collections::{HashMap, HashSet};
 use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
@@ -160,8 +160,15 @@ impl AgentAdapter for MockAdapter {
 
     async fn stop(&mut self) -> anyhow::Result<()> {
         self.inner.started.store(false, Ordering::SeqCst);
-        self.inner.stop_all_tasks().await;
-        self.inner.session_statuses.lock().await.clear();
+        let stopped_sessions = self.inner.stop_all_tasks().await;
+        for session_id in stopped_sessions {
+            self.inner
+                .emit_status(&session_id, TaskStatus::Cancelled, "mock task cancelled")
+                .await;
+            self.inner
+                .emit_status(&session_id, TaskStatus::Idle, "mock adapter is idle")
+                .await;
+        }
         Ok(())
     }
 }
@@ -185,6 +192,11 @@ impl MockAdapterInner {
         prompt: String,
         cancel_flag: Arc<AtomicBool>,
     ) {
+        if self.should_abort(&cancel_flag) {
+            self.finish_task(task_id).await;
+            return;
+        }
+
         self.emit_status(&session_id, TaskStatus::Running, "mock task started")
             .await;
 
@@ -316,15 +328,18 @@ impl MockAdapterInner {
         });
     }
 
-    async fn stop_all_tasks(&self) {
+    async fn stop_all_tasks(&self) -> Vec<String> {
         let mut active_tasks = self.active_tasks.lock().await;
+        let mut stopped_sessions = HashSet::new();
         for task in active_tasks.values() {
             task.cancel_flag.store(true, Ordering::SeqCst);
+            stopped_sessions.insert(task.session_id.clone());
         }
         active_tasks.clear();
         drop(active_tasks);
 
         self.pending_approvals.lock().await.clear();
+        stopped_sessions.into_iter().collect()
     }
 
     async fn emit_status(&self, session_id: &str, status: TaskStatus, summary: &str) {
