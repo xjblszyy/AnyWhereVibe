@@ -66,9 +66,8 @@ impl SessionManager {
         Ok(session)
     }
 
-    pub fn update_status(&mut self, id: &str, status: TaskStatus) {
+    pub fn update_status(&mut self, id: &str, status: TaskStatus) -> Result<()> {
         self.try_update_status(id, status)
-            .expect("session status update should persist successfully");
     }
 
     fn load_sync(path: &Path) -> Result<Self> {
@@ -92,16 +91,12 @@ impl SessionManager {
                 )
             })?;
 
-            if contents.trim().is_empty() {
-                HashMap::new()
-            } else {
-                serde_json::from_str(&contents).with_context(|| {
-                    format!(
-                        "failed to parse session storage file at {}",
-                        storage_path.display()
-                    )
-                })?
-            }
+            serde_json::from_str(&contents).with_context(|| {
+                format!(
+                    "failed to parse session storage file at {}",
+                    storage_path.display()
+                )
+            })?
         } else {
             HashMap::new()
         };

@@ -1,9 +1,21 @@
 use agent::session::SessionManager;
 use proto_gen::TaskStatus;
+use std::fs;
 use tempfile::tempdir;
 
 #[test]
-fn session_manager_persists_sessions_to_disk_with_server_session_shape() {
+fn whitespace_only_sessions_file_is_a_load_error() {
+    let temp_dir = tempdir().expect("temp dir");
+    let sessions_path = temp_dir.path().join("sessions.json");
+
+    fs::write(&sessions_path, "   \n\t").expect("write whitespace-only sessions file");
+
+    let error = SessionManager::new(&sessions_path).expect_err("whitespace-only json must fail");
+    assert!(error.to_string().contains("failed to parse session storage file"));
+}
+
+#[test]
+fn update_status_returns_result_and_persists_sessions_to_disk() {
     let temp_dir = tempdir().expect("temp dir");
     let sessions_path = temp_dir.path().join("nested").join("sessions.json");
 
@@ -19,7 +31,9 @@ fn session_manager_persists_sessions_to_disk_with_server_session_shape() {
     assert!(session.created_at_ms > 0);
     assert_eq!(session.created_at_ms, session.last_active_ms);
 
-    manager.update_status(&session.id, TaskStatus::Running);
+    manager
+        .update_status(&session.id, TaskStatus::Running)
+        .expect("update status");
 
     let reloaded = SessionManager::new(&sessions_path).expect("reload manager");
     let persisted = reloaded
