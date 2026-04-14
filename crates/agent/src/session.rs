@@ -4,7 +4,9 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{ensure, Context};
+use proto_gen::{SessionInfo, TaskStatus};
 use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 use crate::config::default_sessions_path;
 use crate::error::Result;
@@ -12,7 +14,9 @@ use crate::error::Result;
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Session {
     pub id: String,
-    pub device_id: String,
+    pub name: String,
+    pub status: i32,
+    pub working_dir: String,
     pub created_at_ms: u64,
     pub last_active_ms: u64,
 }
@@ -24,11 +28,11 @@ pub struct SessionManager {
 }
 
 impl SessionManager {
-    pub async fn load(path: impl AsRef<Path>) -> Result<Self> {
-        Self::load_sync(path.as_ref())
+    pub fn new(path: &Path) -> Result<Self> {
+        Self::load_sync(path)
     }
 
-    pub async fn load_default() -> Result<Self> {
+    pub fn new_default() -> Result<Self> {
         Self::load_sync(&default_sessions_path())
     }
 
@@ -36,27 +40,35 @@ impl SessionManager {
         self.sessions.get(id)
     }
 
-    pub async fn upsert_session(&mut self, id: String, device_id: String) -> Result<Session> {
-        let now = now_ms();
+    pub fn list(&self) -> Vec<SessionInfo> {
+        self.sessions
+            .values()
+            .cloned()
+            .map(SessionInfo::from)
+            .collect()
+    }
 
-        let session = self
-            .sessions
-            .entry(id.clone())
-            .and_modify(|existing| {
-                existing.device_id = device_id.clone();
-                existing.last_active_ms = now;
-            })
-            .or_insert_with(|| Session {
-                id,
-                device_id,
-                created_at_ms: now,
-                last_active_ms: now,
-            })
-            .clone();
+    pub fn create(&mut self, name: &str, working_dir: &str) -> Result<Session> {
+        let now = now_ms();
+        let session = Session {
+            id: Uuid::new_v4().to_string(),
+            name: name.to_owned(),
+            status: TaskStatus::Idle as i32,
+            working_dir: working_dir.to_owned(),
+            created_at_ms: now,
+            last_active_ms: now,
+        };
+
+        self.sessions.insert(session.id.clone(), session.clone());
 
         self.persist()?;
 
         Ok(session)
+    }
+
+    pub fn update_status(&mut self, id: &str, status: TaskStatus) {
+        self.try_update_status(id, status)
+            .expect("session status update should persist successfully");
     }
 
     fn load_sync(path: &Path) -> Result<Self> {
@@ -149,6 +161,16 @@ impl SessionManager {
 
         self.storage_path.with_file_name(file_name)
     }
+
+    fn try_update_status(&mut self, id: &str, status: TaskStatus) -> Result<()> {
+        if let Some(session) = self.sessions.get_mut(id) {
+            session.status = status as i32;
+            session.last_active_ms = now_ms();
+            self.persist()?;
+        }
+
+        Ok(())
+    }
 }
 
 fn now_ms() -> u64 {
@@ -156,4 +178,17 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("system clock should be after unix epoch")
         .as_millis() as u64
+}
+
+impl From<Session> for SessionInfo {
+    fn from(session: Session) -> Self {
+        Self {
+            session_id: session.id,
+            name: session.name,
+            status: session.status,
+            created_at_ms: session.created_at_ms,
+            last_active_ms: session.last_active_ms,
+            working_dir: session.working_dir,
+        }
+    }
 }
