@@ -59,18 +59,59 @@ final class StubWebSocketClient: WebSocketClientProtocol {
 
 final class StubConnectionManager: ConnectionManaging {
     var state: ConnectionState = .disconnected
+    var messages: [ChatMessage] = []
+    var pendingApproval: Mrt_ApprovalRequest?
+    var sessions: [SessionModel] = []
+    var onStateChange: ((ConnectionState) -> Void)?
+    var onMessagesChange: (([ChatMessage]) -> Void)?
+    var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)?
+    var onSessionsChange: (([SessionModel]) -> Void)?
     var sentPrompts: [(prompt: String, sessionID: String)] = []
+    var respondedApprovals: [(approvalID: String, approved: Bool)] = []
+    var createdSessions: [(name: String, workingDirectory: String)] = []
 
     func connect(host: String, port: Int) async throws {
         state = .connected
+        onStateChange?(state)
     }
 
     func disconnect() {
         state = .disconnected
+        onStateChange?(state)
     }
 
     func sendPrompt(_ prompt: String, sessionID: String) async throws {
         sentPrompts.append((prompt: prompt, sessionID: sessionID))
+    }
+
+    func respondToApproval(_ approvalID: String, approved: Bool) async throws {
+        respondedApprovals.append((approvalID: approvalID, approved: approved))
+        pendingApproval = nil
+        onPendingApprovalChange?(nil)
+    }
+
+    func createSession(name: String, workingDirectory: String) async throws {
+        createdSessions.append((name: name, workingDirectory: workingDirectory))
+    }
+
+    func emitState(_ newState: ConnectionState) {
+        state = newState
+        onStateChange?(newState)
+    }
+
+    func emitMessages(_ newMessages: [ChatMessage]) {
+        messages = newMessages
+        onMessagesChange?(newMessages)
+    }
+
+    func emitPendingApproval(_ approval: Mrt_ApprovalRequest?) {
+        pendingApproval = approval
+        onPendingApprovalChange?(approval)
+    }
+
+    func emitSessions(_ newSessions: [SessionModel]) {
+        sessions = newSessions
+        onSessionsChange?(newSessions)
     }
 }
 

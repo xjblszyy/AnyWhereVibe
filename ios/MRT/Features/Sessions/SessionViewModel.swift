@@ -6,10 +6,18 @@ final class SessionViewModel: ObservableObject {
     @Published var sessions: [SessionModel]
     @Published var activeSessionID: String?
 
-    init(sessions: [SessionModel]? = nil) {
+    private let connectionManager: ConnectionManaging?
+
+    init(connectionManager: ConnectionManaging? = nil, sessions: [SessionModel]? = nil) {
+        self.connectionManager = connectionManager
         let initialSessions = sessions ?? Self.defaultSessions
         self.sessions = initialSessions
         self.activeSessionID = initialSessions.first?.id
+        connectionManager?.onSessionsChange = { [weak self] authoritativeSessions in
+            Task { @MainActor in
+                self?.applyAuthoritativeSessions(authoritativeSessions)
+            }
+        }
     }
 
     func selectSession(id: String) {
@@ -19,6 +27,13 @@ final class SessionViewModel: ObservableObject {
     func createSession(named name: String) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
+
+        if let connectionManager, connectionManager.state != .disconnected {
+            Task {
+                try? await connectionManager.createSession(name: trimmedName, workingDirectory: "")
+            }
+            return
+        }
 
         let session = SessionModel(
             id: UUID().uuidString,
@@ -55,5 +70,17 @@ final class SessionViewModel: ObservableObject {
 
     private static func nowMilliseconds() -> UInt64 {
         UInt64(Date().timeIntervalSince1970 * 1_000)
+    }
+
+    private func applyAuthoritativeSessions(_ authoritativeSessions: [SessionModel]) {
+        let previousActiveSessionID = activeSessionID
+        sessions = authoritativeSessions
+
+        if let previousActiveSessionID,
+           authoritativeSessions.contains(where: { $0.id == previousActiveSessionID }) {
+            activeSessionID = previousActiveSessionID
+        } else {
+            activeSessionID = authoritativeSessions.first?.id
+        }
     }
 }

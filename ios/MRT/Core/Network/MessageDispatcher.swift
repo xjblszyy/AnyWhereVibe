@@ -42,6 +42,13 @@ final class MessageDispatcher {
         }
     }
 
+    func clearPendingApproval() {
+        pendingApproval = nil
+        if state == .showingApproval {
+            state = .connected
+        }
+    }
+
     private func applyCodexOutput(_ output: Mrt_CodexOutput) {
         if let lastIndex = messages.indices.last,
            messages[lastIndex].sessionID == output.sessionID,

@@ -55,10 +55,17 @@ final class ChatViewModel: ObservableObject {
     @Published var activeSessionID: String? = "session-1"
 
     private let connectionManager: ConnectionManaging
+    private var localMessages: [FeatureChatMessage] = []
+    private var remoteMessages: [ChatMessage] = []
+    private var hasAttemptedInitialConnect = false
 
     init(connectionManager: ConnectionManaging) {
         self.connectionManager = connectionManager
         self.connectionState = connectionManager.state
+        self.remoteMessages = connectionManager.messages
+        self.pendingApproval = connectionManager.pendingApproval
+        bindConnectionManager()
+        rebuildMessages()
     }
 
     var isLoading: Bool {
@@ -76,21 +83,22 @@ final class ChatViewModel: ObservableObject {
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty else { return }
 
-        messages.append(
-            FeatureChatMessage(
-                sessionID: activeSessionID,
-                content: prompt,
-                isComplete: true,
-                role: .user
-            )
+        let userMessage = FeatureChatMessage(
+            sessionID: activeSessionID,
+            content: prompt,
+            isComplete: true,
+            role: .user
         )
+        localMessages.append(userMessage)
+        rebuildMessages()
+
         inputText = ""
         connectionState = .loading
 
         do {
             try await connectionManager.sendPrompt(prompt, sessionID: activeSessionID ?? "session-1")
         } catch {
-            messages.append(
+            localMessages.append(
                 FeatureChatMessage(
                     sessionID: activeSessionID,
                     content: "Unable to send prompt right now.",
@@ -98,19 +106,77 @@ final class ChatViewModel: ObservableObject {
                     role: .system
                 )
             )
-            connectionState = .connected
+            rebuildMessages()
+            connectionState = connectionManager.state
         }
     }
 
-    func respondToApproval(_ approved: Bool) {
-        pendingApproval = nil
-        messages.append(
+    func respondToApproval(_ approved: Bool) async {
+        guard let approvalID = pendingApproval?.approvalID else { return }
+
+        do {
+            try await connectionManager.respondToApproval(approvalID, approved: approved)
+            pendingApproval = nil
+        } catch {
+        }
+    }
+
+    var lastMessageSignature: String {
+        guard let lastMessage = messages.last else { return "empty" }
+        return "\(lastMessage.id.uuidString):\(lastMessage.content.count):\(lastMessage.isComplete)"
+    }
+
+    func connectIfNeeded(host: String, port: Int, mode: ConnectionMode) async {
+        guard mode == .direct else { return }
+        guard !hasAttemptedInitialConnect else { return }
+        hasAttemptedInitialConnect = true
+
+        do {
+            try await connectionManager.connect(host: host, port: port)
+        } catch {
+            connectionState = .disconnected
+        }
+    }
+
+    private func bindConnectionManager() {
+        connectionManager.onStateChange = { [weak self] newState in
+            Task { @MainActor in
+                self?.connectionState = newState
+            }
+        }
+        connectionManager.onMessagesChange = { [weak self] newMessages in
+            Task { @MainActor in
+                self?.remoteMessages = newMessages
+                self?.rebuildMessages()
+            }
+        }
+        connectionManager.onPendingApprovalChange = { [weak self] approval in
+            Task { @MainActor in
+                self?.pendingApproval = approval
+            }
+        }
+    }
+
+    private func rebuildMessages() {
+        let mappedRemote = remoteMessages.map { message in
             FeatureChatMessage(
-                sessionID: activeSessionID,
-                content: approved ? "Approval queued." : "Approval rejected.",
-                isComplete: true,
-                role: .system
+                id: message.id,
+                sessionID: message.sessionID,
+                content: message.content,
+                isComplete: message.isComplete,
+                role: mapRole(message.role),
+                timestamp: Date()
             )
-        )
+        }
+        messages = localMessages + mappedRemote
+    }
+
+    private func mapRole(_ role: ChatMessage.Role) -> FeatureChatMessage.Role {
+        switch role {
+        case .assistant:
+            return .assistant
+        case .system:
+            return .system
+        }
     }
 }

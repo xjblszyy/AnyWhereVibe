@@ -16,4 +16,7 @@ if [[ ! -f "${agent_manifest}" ]]; then
 fi
 
 cd "${repo_root}"
+echo "Starting mock agent on ws://0.0.0.0:9876/"
+echo "Simulator: use 127.0.0.1:9876"
+echo "Physical iPhone: use your Mac's LAN IP with port 9876"
 cargo run -p agent -- --mock --listen 0.0.0.0:9876

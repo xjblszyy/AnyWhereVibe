@@ -207,6 +207,54 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(manager.state, .reconnecting)
         XCTAssertEqual(socket.sentData.count, 1)
     }
+
+    func testConnectionManagerPublishesInboundDispatcherState() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+        socket.pushIncomingEnvelope(makeCodexOutput(content: "Hello ", complete: false))
+        socket.pushIncomingEnvelope(makeCodexOutput(content: "world", complete: true))
+        socket.pushIncomingEnvelope(makeApprovalRequestEnvelope())
+        socket.pushIncomingEnvelope(makeSessionListEnvelope())
+
+        XCTAssertEqual(manager.messages.last?.content, "Hello world")
+        XCTAssertEqual(manager.messages.last?.isComplete, true)
+        XCTAssertEqual(manager.pendingApproval?.approvalID, "approval-1")
+        XCTAssertEqual(manager.sessions.map(\.id), ["session-1"])
+    }
+
+    func testConnectionManagerSendsApprovalResponsesAndCreateSessionCommands() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+        socket.pushIncomingEnvelope(makeApprovalRequestEnvelope())
+
+        try await manager.respondToApproval("approval-1", approved: true)
+        try await manager.createSession(name: "Daily", workingDirectory: "/tmp/daily")
+
+        let approvalEnvelope = try ProtobufCodec.decode(socket.sentData[1])
+        let createEnvelope = try ProtobufCodec.decode(socket.sentData[2])
+
+        if case .command(let command) = approvalEnvelope.payload,
+           case .approvalResponse(let response)? = command.cmd {
+            XCTAssertEqual(response.approvalID, "approval-1")
+            XCTAssertTrue(response.approved)
+        } else {
+            XCTFail("Expected approval response command envelope")
+        }
+
+        if case .session(let session) = createEnvelope.payload,
+           case .create(let create)? = session.action {
+            XCTAssertEqual(create.name, "Daily")
+            XCTAssertEqual(create.workingDir, "/tmp/daily")
+        } else {
+            XCTFail("Expected create session envelope")
+        }
+    }
 }
 
 private func XCTAssertThrowsErrorAsync(

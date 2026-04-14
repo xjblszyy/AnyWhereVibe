@@ -15,18 +15,52 @@ enum ConnectionManagerError: Error, Equatable {
 
 protocol ConnectionManaging: AnyObject {
     var state: ConnectionState { get }
+    var messages: [ChatMessage] { get }
+    var pendingApproval: Mrt_ApprovalRequest? { get }
+    var sessions: [SessionModel] { get }
+    var onStateChange: ((ConnectionState) -> Void)? { get set }
+    var onMessagesChange: (([ChatMessage]) -> Void)? { get set }
+    var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)? { get set }
+    var onSessionsChange: (([SessionModel]) -> Void)? { get set }
 
     func connect(host: String, port: Int) async throws
     func disconnect()
     func sendPrompt(_ prompt: String, sessionID: String) async throws
+    func respondToApproval(_ approvalID: String, approved: Bool) async throws
+    func createSession(name: String, workingDirectory: String) async throws
 }
 
 final class ConnectionManager: ConnectionManaging {
     private let socket: WebSocketClientProtocol
     private let heartbeatInterval: TimeInterval
     private let timeoutInterval: TimeInterval
+    private let dispatcher = MessageDispatcher()
 
-    private(set) var state: ConnectionState = .disconnected
+    private(set) var state: ConnectionState = .disconnected {
+        didSet { onStateChange?(state) }
+    }
+    private(set) var messages: [ChatMessage] = [] {
+        didSet { onMessagesChange?(messages) }
+    }
+    private(set) var pendingApproval: Mrt_ApprovalRequest? {
+        didSet { onPendingApprovalChange?(pendingApproval) }
+    }
+    private(set) var sessions: [SessionModel] = [] {
+        didSet { onSessionsChange?(sessions) }
+    }
+
+    var onStateChange: ((ConnectionState) -> Void)? {
+        didSet { onStateChange?(state) }
+    }
+    var onMessagesChange: (([ChatMessage]) -> Void)? {
+        didSet { onMessagesChange?(messages) }
+    }
+    var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)? {
+        didSet { onPendingApprovalChange?(pendingApproval) }
+    }
+    var onSessionsChange: (([SessionModel]) -> Void)? {
+        didSet { onSessionsChange?(sessions) }
+    }
 
     private var heartbeatTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
@@ -81,6 +115,41 @@ final class ConnectionManager: ConnectionManaging {
         })
     }
 
+    func respondToApproval(_ approvalID: String, approved: Bool) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        var command = Mrt_AgentCommand()
+        command.approvalResponse = .with { response in
+            response.approvalID = approvalID
+            response.approved = approved
+        }
+
+        dispatcher.clearPendingApproval()
+        syncDispatcherOutputs()
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.command = command
+        })
+    }
+
+    func createSession(name: String, workingDirectory: String) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        var control = Mrt_SessionControl()
+        control.create = .with { create in
+            create.name = name
+            create.workingDir = workingDirectory
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.session = control
+        })
+    }
+
     private func handleIncomingData(_ data: Data, attemptID: UUID) {
         guard attemptID == connectionAttemptID else {
             return
@@ -129,6 +198,9 @@ final class ConnectionManager: ConnectionManaging {
         case .codexOutput, .sessionList, .none:
             break
         }
+
+        dispatcher.apply(envelope)
+        syncDispatcherOutputs()
     }
 
     private func establishConnection(to url: URL, connectionState: ConnectionState, attemptID: UUID) async throws {
@@ -296,5 +368,11 @@ final class ConnectionManager: ConnectionManaging {
         guard attemptID == connectionAttemptID else {
             throw CancellationError()
         }
+    }
+
+    private func syncDispatcherOutputs() {
+        messages = dispatcher.messages
+        pendingApproval = dispatcher.pendingApproval
+        sessions = dispatcher.sessions
     }
 }

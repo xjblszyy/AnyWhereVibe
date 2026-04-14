@@ -51,7 +51,7 @@ struct ChatView: View {
                         }
                         .padding(GHSpacing.lg)
                     }
-                    .onChange(of: viewModel.messages.count) { _, _ in
+                    .onChange(of: viewModel.lastMessageSignature) { _, _ in
                         guard let lastID = viewModel.messages.last?.id else { return }
                         withAnimation(.easeOut(duration: 0.2)) {
                             proxy.scrollTo(lastID, anchor: .bottom)
@@ -62,8 +62,8 @@ struct ChatView: View {
                 if let request = viewModel.pendingApproval {
                     ApprovalBannerView(
                         request: request,
-                        onApprove: { viewModel.respondToApproval(true) },
-                        onReject: { viewModel.respondToApproval(false) }
+                        onApprove: { Task { await viewModel.respondToApproval(true) } },
+                        onReject: { Task { await viewModel.respondToApproval(false) } }
                     )
                     .padding(.horizontal, GHSpacing.lg)
                     .padding(.bottom, GHSpacing.md)

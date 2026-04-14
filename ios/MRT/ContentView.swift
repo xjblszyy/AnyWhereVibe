@@ -26,7 +26,7 @@ struct ContentView: View {
 
     @State private var selectedTab: Tab = .chat
     @StateObject private var chatViewModel: ChatViewModel
-    @StateObject private var sessionViewModel = SessionViewModel()
+    @StateObject private var sessionViewModel: SessionViewModel
 
     private let preferences: Preferences
 
@@ -35,6 +35,9 @@ struct ContentView: View {
         preferences: Preferences = Preferences()
     ) {
         self.preferences = preferences
+        _sessionViewModel = StateObject(
+            wrappedValue: SessionViewModel(connectionManager: connectionManager)
+        )
         _chatViewModel = StateObject(
             wrappedValue: ChatViewModel(connectionManager: connectionManager)
         )
@@ -69,6 +72,16 @@ struct ContentView: View {
             )
         }
         .background(GHColors.bgPrimary.ignoresSafeArea())
+        .task {
+            guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
+                return
+            }
+            await chatViewModel.connectIfNeeded(
+                host: preferences.directHost,
+                port: preferences.directPort,
+                mode: preferences.connectionMode
+            )
+        }
     }
 }
 
