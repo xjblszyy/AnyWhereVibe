@@ -11,6 +11,7 @@ enum ConnectionState: Equatable {
 
 enum ConnectionManagerError: Error, Equatable {
     case notConnected
+    case invalidEndpoint
 }
 
 protocol ConnectionManaging: AnyObject {
@@ -81,7 +82,14 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     func connect(host: String, port: Int) async throws {
-        let url = URL(string: "ws://\(host):\(port)/")!
+        let trimmedHost = host.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard
+            !trimmedHost.isEmpty,
+            !trimmedHost.contains("://"),
+            let url = URL(string: "ws://\(trimmedHost):\(port)/")
+        else {
+            throw ConnectionManagerError.invalidEndpoint
+        }
         endpointURL = url
         connectionAttemptID = UUID()
         reconnectTask?.cancel()

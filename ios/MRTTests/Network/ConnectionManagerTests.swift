@@ -101,6 +101,20 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerRejectsInvalidHostBeforeConnecting() async {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        do {
+            try await manager.connect(host: "ws://127.0.0.1", port: 9876)
+            XCTFail("expected invalid endpoint error")
+        } catch let error as ConnectionManagerError {
+            XCTAssertEqual(error, .invalidEndpoint)
+        } catch {
+            XCTFail("unexpected error: \(error)")
+        }
+    }
+
     func testConnectionManagerCancelledReconnectDoesNotResurrectAfterDisconnect() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 45)
