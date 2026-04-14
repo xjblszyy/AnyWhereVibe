@@ -15,6 +15,7 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
 
     private var session: URLSession?
     private var task: URLSessionWebSocketTask?
+    private var activeTaskID = UUID()
     private var hasClosed = false
 
     func connect(url: URL) async throws {
@@ -23,10 +24,12 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
         hasClosed = false
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
         let task = session.webSocketTask(with: url)
+        let taskID = UUID()
         self.session = session
         self.task = task
+        self.activeTaskID = taskID
         task.resume()
-        receiveNextMessage()
+        receiveNextMessage(for: task, taskID: taskID)
     }
 
     func send(_ data: Data) async throws {
@@ -48,21 +51,22 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
         }
     }
 
-    private func receiveNextMessage() {
-        task?.receive { [weak self] result in
+    private func receiveNextMessage(for task: URLSessionWebSocketTask, taskID: UUID) {
+        task.receive { [weak self] result in
             guard let self else { return }
+            guard self.task === task, self.activeTaskID == taskID else { return }
 
             switch result {
             case .success(.data(let data)):
                 self.onReceive?(data)
-                self.receiveNextMessage()
+                self.receiveNextMessage(for: task, taskID: taskID)
             case .success(.string(let text)):
                 if let data = text.data(using: .utf8) {
                     self.onReceive?(data)
                 }
-                self.receiveNextMessage()
+                self.receiveNextMessage(for: task, taskID: taskID)
             case .success:
-                self.receiveNextMessage()
+                self.receiveNextMessage(for: task, taskID: taskID)
             case .failure:
                 self.notifyClosedIfNeeded()
             }
@@ -83,6 +87,7 @@ extension WebSocketClient: URLSessionWebSocketDelegate {
         didCloseWith closeCode: URLSessionWebSocketTask.CloseCode,
         reason: Data?
     ) {
+        guard task === webSocketTask else { return }
         notifyClosedIfNeeded()
     }
 }

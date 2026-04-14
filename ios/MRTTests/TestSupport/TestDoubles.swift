@@ -8,8 +8,22 @@ final class StubWebSocketClient: WebSocketClientProtocol {
     var connectCalls: [URL] = []
     var disconnectCallCount = 0
     var nextConnectDelayNanoseconds: UInt64?
-    var onReceive: ((Data) -> Void)?
-    var onClose: (() -> Void)?
+    var receiveCallbackHistory: [(Data) -> Void] = []
+    var closeCallbackHistory: [() -> Void] = []
+    var onReceive: ((Data) -> Void)? {
+        didSet {
+            if let onReceive {
+                receiveCallbackHistory.append(onReceive)
+            }
+        }
+    }
+    var onClose: (() -> Void)? {
+        didSet {
+            if let onClose {
+                closeCallbackHistory.append(onClose)
+            }
+        }
+    }
 
     func connect(url: URL) async throws {
         connectedURL = url

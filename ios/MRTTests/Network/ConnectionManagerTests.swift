@@ -159,6 +159,54 @@ final class ConnectionManagerTests: XCTestCase {
             XCTFail("Expected reconnect handshake envelope after handshake timeout")
         }
     }
+
+    func testConnectionManagerIgnoresStaleReceiveCallbackAfterReplacementConnect() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        let staleReceive = try XCTUnwrap(socket.receiveCallbackHistory.last)
+
+        try await manager.connect(host: "127.0.0.1", port: 9999)
+        staleReceive(try ProtobufCodec.encode(makeAgentInfoEnvelope()))
+
+        XCTAssertEqual(manager.state, .connecting)
+        XCTAssertEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(socket.connectCalls.last?.absoluteString, "ws://127.0.0.1:9999/")
+    }
+
+    func testConnectionManagerIgnoresStaleCloseCallbackAfterReplacementConnect() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        let staleClose = try XCTUnwrap(socket.closeCallbackHistory.last)
+
+        try await manager.connect(host: "127.0.0.1", port: 9999)
+        staleClose()
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(manager.state, .connecting)
+        XCTAssertEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(socket.connectCalls.last?.absoluteString, "ws://127.0.0.1:9999/")
+    }
+
+    func testConnectionManagerIgnoresLateInboundMessagesAfterTransitioningToReconnect() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+        let staleReceive = try XCTUnwrap(socket.receiveCallbackHistory.last)
+        socket.nextConnectDelayNanoseconds = 1_000_000_000
+
+        socket.simulateClose()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        staleReceive(try ProtobufCodec.encode(makeAgentInfoEnvelope()))
+
+        XCTAssertEqual(manager.state, .reconnecting)
+        XCTAssertEqual(socket.sentData.count, 1)
+    }
 }
 
 private func XCTAssertThrowsErrorAsync(

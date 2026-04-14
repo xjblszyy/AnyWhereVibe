@@ -81,8 +81,16 @@ final class ConnectionManager: ConnectionManaging {
         })
     }
 
-    private func handleIncomingData(_ data: Data) {
+    private func handleIncomingData(_ data: Data, attemptID: UUID) {
+        guard attemptID == connectionAttemptID else {
+            return
+        }
+
         guard let envelope = try? ProtobufCodec.decode(data) else {
+            return
+        }
+
+        guard attemptID == connectionAttemptID else {
             return
         }
 
@@ -94,12 +102,13 @@ final class ConnectionManager: ConnectionManaging {
 
         switch event.evt {
         case .agentInfo:
+            guard attemptID == connectionAttemptID else { return }
             guard !handshakeSucceeded else { return }
             handshakeSucceeded = true
             state = .connected
             lastInboundMessageAt = Date()
             startHeartbeatLoop()
-            startInboundTimeoutLoop(attemptID: connectionAttemptID)
+            startInboundTimeoutLoop(attemptID: attemptID)
         case .approvalRequest:
             state = .showingApproval
         case .statusUpdate(let update):
@@ -126,7 +135,7 @@ final class ConnectionManager: ConnectionManaging {
         try ensureActiveAttempt(attemptID)
         teardownSocket()
         try ensureActiveAttempt(attemptID)
-        configureSocketCallbacks()
+        configureSocketCallbacks(attemptID: attemptID)
         state = connectionState
         try ensureActiveAttempt(attemptID)
         try await socket.connect(url: url)
@@ -135,13 +144,20 @@ final class ConnectionManager: ConnectionManaging {
         startHandshakeTimeoutLoop(attemptID: attemptID)
     }
 
-    private func configureSocketCallbacks() {
+    private func configureSocketCallbacks(attemptID: UUID) {
         socket.onReceive = { [weak self] data in
-            self?.handleIncomingData(data)
+            self?.handleIncomingData(data, attemptID: attemptID)
         }
         socket.onClose = { [weak self] in
-            self?.transitionToReconnecting()
+            self?.handleSocketClose(attemptID: attemptID)
         }
+    }
+
+    private func handleSocketClose(attemptID: UUID) {
+        guard attemptID == connectionAttemptID else {
+            return
+        }
+        transitionToReconnecting()
     }
 
     private func startHeartbeatLoop() {
@@ -233,18 +249,14 @@ final class ConnectionManager: ConnectionManaging {
     private func transitionToReconnecting() {
         guard state != .disconnected else { return }
         state = .reconnecting
-        heartbeatTask?.cancel()
-        timeoutTask?.cancel()
-        heartbeatTask = nil
-        timeoutTask = nil
-        handshakeSucceeded = false
-        lastInboundMessageAt = nil
+        teardownSocket()
 
         guard reconnectTask == nil, let endpointURL else {
             return
         }
 
-        let attemptID = connectionAttemptID
+        let attemptID = UUID()
+        connectionAttemptID = attemptID
         reconnectTask = Task { [weak self] in
             guard let self else { return }
             defer { self.reconnectTask = nil }
