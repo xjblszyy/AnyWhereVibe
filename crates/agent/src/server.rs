@@ -170,6 +170,10 @@ async fn handle_connection(stream: TcpStream, state: ServerState) -> Result<()> 
         return Ok(());
     };
 
+    if !validate_envelope_protocol_version(&mut write, &handshake_envelope).await? {
+        return Ok(());
+    }
+
     if handshake.protocol_version != PROTOCOL_VERSION {
         send_error_and_close(
             &mut write,
@@ -231,6 +235,9 @@ async fn handle_connection(stream: TcpStream, state: ServerState) -> Result<()> 
 
                 match parse_incoming_message(&mut write, message).await? {
                     IncomingFrame::Envelope(envelope) => {
+                        if !validate_envelope_protocol_version(&mut write, &envelope).await? {
+                            return Ok(());
+                        }
                         idle_deadline = Instant::now() + IDLE_TIMEOUT;
                         let should_close = route_envelope(&state, &mut write, envelope).await?;
                         if should_close {
@@ -327,47 +334,48 @@ async fn route_command(
 ) -> Result<()> {
     match cmd {
         Cmd::SendPrompt(SendPrompt { session_id, prompt }) => {
-            let exists = {
-                let sessions = state.sessions.lock().await;
-                sessions.get(&session_id).is_some()
-            };
-            if !exists {
-                send_error(
-                    write,
-                    &request_id,
-                    "SESSION_NOT_FOUND",
-                    format!("session '{session_id}' does not exist"),
-                    false,
-                )
-                .await?;
-                return Ok(());
-            }
+            let prompt_decision = {
+                let mut sessions = state.sessions.lock().await;
 
-            let busy = {
-                let sessions = state.sessions.lock().await;
-                sessions.list().into_iter().any(|session| {
+                if sessions.get(&session_id).is_none() {
+                    PromptDecision::MissingSession
+                } else if sessions.list().into_iter().any(|session| {
                     session.status == TaskStatus::Running as i32
                         || session.status == TaskStatus::WaitingApproval as i32
-                })
+                }) {
+                    PromptDecision::Busy
+                } else {
+                    sessions.update_status(&session_id, TaskStatus::Running)?;
+                    PromptDecision::Accepted(sessions.list())
+                }
             };
-            if busy {
-                send_error(
-                    write,
-                    &request_id,
-                    "TASK_ALREADY_RUNNING",
-                    "another task is already running",
-                    false,
-                )
-                .await?;
-                return Ok(());
-            }
 
-            {
-                let mut sessions = state.sessions.lock().await;
-                let _ = sessions.update_status(&session_id, TaskStatus::Running);
-                let session_list = sessions.list();
-                drop(sessions);
-                broadcast_session_list(state, session_list);
+            match prompt_decision {
+                PromptDecision::MissingSession => {
+                    send_error(
+                        write,
+                        &request_id,
+                        "SESSION_NOT_FOUND",
+                        format!("session '{session_id}' does not exist"),
+                        false,
+                    )
+                    .await?;
+                    return Ok(());
+                }
+                PromptDecision::Busy => {
+                    send_error(
+                        write,
+                        &request_id,
+                        "TASK_ALREADY_RUNNING",
+                        "another task is already running",
+                        false,
+                    )
+                    .await?;
+                    return Ok(());
+                }
+                PromptDecision::Accepted(session_list) => {
+                    broadcast_session_list(state, session_list);
+                }
             }
 
             if let Err(error) = state.adapter.send_prompt(&session_id, &prompt).await {
@@ -455,6 +463,28 @@ async fn route_command(
     }
 
     Ok(())
+}
+
+async fn validate_envelope_protocol_version(
+    write: &mut WsWrite,
+    envelope: &Envelope,
+) -> Result<bool> {
+    if envelope.protocol_version == PROTOCOL_VERSION {
+        return Ok(true);
+    }
+
+    send_error_and_close(
+        write,
+        "VERSION_MISMATCH",
+        format!(
+            "client envelope protocol version {} does not match server version {}",
+            envelope.protocol_version, PROTOCOL_VERSION
+        ),
+        true,
+        &envelope.request_id,
+    )
+    .await?;
+    Ok(false)
 }
 
 async fn route_session_control(
@@ -642,4 +672,10 @@ enum IncomingFrame {
     Envelope(Envelope),
     Closed,
     Ignored,
+}
+
+enum PromptDecision {
+    MissingSession,
+    Busy,
+    Accepted(Vec<SessionInfo>),
 }

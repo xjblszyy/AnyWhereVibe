@@ -1,4 +1,7 @@
-use agent::test_support::TestClient;
+use std::sync::Arc;
+
+use agent::test_support::{PromptStartOutcome, TestClient};
+use tokio::sync::Barrier;
 
 #[tokio::test]
 async fn server_creates_session_and_broadcasts_session_list() {
@@ -88,4 +91,83 @@ async fn server_returns_non_fatal_error_for_unknown_approval_id() {
 
     assert!(!error.fatal);
     assert_eq!(error.code, "APPROVAL_NOT_FOUND");
+}
+
+#[tokio::test]
+async fn server_allows_only_one_of_multiple_concurrent_prompts_to_start() {
+    let server = agent::test_support::spawn_mock_server().await;
+    let mut owner = TestClient::connect(server.ws_url()).await;
+
+    owner.handshake_ios().await;
+    let session_one = owner.create_session("One", "/tmp/one").await;
+    let session_two = owner.create_session("Two", "/tmp/two").await;
+    let session_three = owner.create_session("Three", "/tmp/three").await;
+    let session_four = owner.create_session("Four", "/tmp/four").await;
+
+    let mut client_two = TestClient::connect(server.ws_url()).await;
+    client_two.handshake_ios().await;
+    let mut client_three = TestClient::connect(server.ws_url()).await;
+    client_three.handshake_ios().await;
+    let mut client_four = TestClient::connect(server.ws_url()).await;
+    client_four.handshake_ios().await;
+
+    let barrier = Arc::new(Barrier::new(5));
+
+    let one_id = session_one.session_id.clone();
+    let barrier_one = barrier.clone();
+    let one = tokio::spawn(async move {
+        barrier_one.wait().await;
+        owner.send_prompt(&one_id, "one").await;
+        owner.expect_prompt_start_or_error(&one_id).await
+    });
+
+    let two_id = session_two.session_id.clone();
+    let barrier_two = barrier.clone();
+    let two = tokio::spawn(async move {
+        barrier_two.wait().await;
+        client_two.send_prompt(&two_id, "two").await;
+        client_two.expect_prompt_start_or_error(&two_id).await
+    });
+
+    let three_id = session_three.session_id.clone();
+    let barrier_three = barrier.clone();
+    let three = tokio::spawn(async move {
+        barrier_three.wait().await;
+        client_three.send_prompt(&three_id, "three").await;
+        client_three.expect_prompt_start_or_error(&three_id).await
+    });
+
+    let four_id = session_four.session_id.clone();
+    let barrier_four = barrier.clone();
+    let four = tokio::spawn(async move {
+        barrier_four.wait().await;
+        client_four.send_prompt(&four_id, "four").await;
+        client_four.expect_prompt_start_or_error(&four_id).await
+    });
+
+    barrier.wait().await;
+
+    let outcomes = vec![
+        one.await.unwrap(),
+        two.await.unwrap(),
+        three.await.unwrap(),
+        four.await.unwrap(),
+    ];
+
+    let started = outcomes
+        .iter()
+        .filter(|outcome| matches!(outcome, PromptStartOutcome::Started))
+        .count();
+    let rejected = outcomes
+        .iter()
+        .filter(|outcome| {
+            matches!(
+                outcome,
+                PromptStartOutcome::Error(error) if error.code == "TASK_ALREADY_RUNNING" && !error.fatal
+            )
+        })
+        .count();
+
+    assert_eq!(started, 1, "only one concurrent prompt may start");
+    assert_eq!(rejected, 3, "all remaining prompts must be rejected");
 }

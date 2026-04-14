@@ -152,6 +152,12 @@ pub struct TestClient {
     buffered: VecDeque<Envelope>,
 }
 
+#[derive(Debug)]
+pub enum PromptStartOutcome {
+    Started,
+    Error(ErrorEvent),
+}
+
 impl TestClient {
     pub async fn connect(url: String) -> Self {
         let (socket, _) = connect_async(url).await.expect("connect websocket client");
@@ -237,6 +243,30 @@ impl TestClient {
     pub async fn send_prompt_expect_error(&mut self, session_id: &str, prompt: &str) -> ErrorEvent {
         self.send_prompt(session_id, prompt).await;
         self.expect_error().await
+    }
+
+    pub async fn expect_prompt_start_or_error(&mut self, session_id: &str) -> PromptStartOutcome {
+        loop {
+            let envelope = self.next_envelope().await;
+            match envelope.payload {
+                Some(Payload::Event(AgentEvent {
+                    evt:
+                        Some(Evt::StatusUpdate(TaskStatusUpdate {
+                            session_id: event_session_id,
+                            status,
+                            ..
+                        })),
+                })) if event_session_id == session_id
+                    && status == proto_gen::TaskStatus::Running as i32 =>
+                {
+                    return PromptStartOutcome::Started;
+                }
+                Some(Payload::Event(AgentEvent {
+                    evt: Some(Evt::Error(error)),
+                })) => return PromptStartOutcome::Error(error),
+                _ => {}
+            }
+        }
     }
 
     pub async fn expect_approval_request(&mut self) -> ApprovalRequest {

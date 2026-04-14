@@ -1,5 +1,7 @@
+use agent::wire::encode_ws_binary_message;
 use futures_util::SinkExt;
-use proto_gen::ErrorEvent;
+use proto_gen::envelope::Payload;
+use proto_gen::{ClientType, Envelope, ErrorEvent, Handshake};
 use tokio_tungstenite::connect_async;
 
 #[tokio::test]
@@ -57,6 +59,37 @@ async fn server_rejects_protocol_version_mismatch() {
     let (mut socket, _) = connect_async(test_server.ws_url()).await.unwrap();
 
     agent::test_support::send_handshake_with_protocol(&mut socket, 999).await;
+
+    let error: ErrorEvent = agent::test_support::recv_error_event(&mut socket).await;
+    assert!(error.fatal);
+    assert_eq!(error.code, "VERSION_MISMATCH");
+    assert!(agent::test_support::expect_socket_closed(&mut socket).await);
+}
+
+#[tokio::test]
+async fn server_rejects_envelope_protocol_version_mismatch_even_when_handshake_payload_matches() {
+    let test_server = agent::test_support::spawn_mock_server().await;
+    let (mut socket, _) = connect_async(test_server.ws_url()).await.unwrap();
+
+    let frame = encode_ws_binary_message(&Envelope {
+        protocol_version: 999,
+        request_id: "req-envelope-version".into(),
+        timestamp_ms: 1,
+        payload: Some(Payload::Handshake(Handshake {
+            protocol_version: 1,
+            client_type: ClientType::PhoneIos as i32,
+            client_version: "1.0.0".into(),
+            device_id: "device".into(),
+        })),
+    })
+    .unwrap();
+
+    socket
+        .send(tokio_tungstenite::tungstenite::Message::Binary(
+            frame.into(),
+        ))
+        .await
+        .unwrap();
 
     let error: ErrorEvent = agent::test_support::recv_error_event(&mut socket).await;
     assert!(error.fatal);
