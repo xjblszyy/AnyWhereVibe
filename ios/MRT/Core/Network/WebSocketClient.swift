@@ -18,7 +18,7 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
     private var hasClosed = false
 
     func connect(url: URL) async throws {
-        disconnect()
+        shutdown(notifyClose: false)
 
         hasClosed = false
         let session = URLSession(configuration: .default, delegate: self, delegateQueue: nil)
@@ -35,11 +35,17 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
     }
 
     func disconnect() {
+        shutdown(notifyClose: true)
+    }
+
+    private func shutdown(notifyClose: Bool) {
         task?.cancel(with: .goingAway, reason: nil)
         session?.invalidateAndCancel()
         task = nil
         session = nil
-        notifyClosedIfNeeded()
+        if notifyClose {
+            notifyClosedIfNeeded()
+        }
     }
 
     private func receiveNextMessage() {

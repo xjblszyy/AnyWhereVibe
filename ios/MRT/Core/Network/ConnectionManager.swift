@@ -9,6 +9,10 @@ enum ConnectionState: Equatable {
     case reconnecting
 }
 
+enum ConnectionManagerError: Error, Equatable {
+    case notConnected
+}
+
 protocol ConnectionManaging: AnyObject {
     var state: ConnectionState { get }
 
@@ -26,8 +30,10 @@ final class ConnectionManager: ConnectionManaging {
 
     private var heartbeatTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
+    private var reconnectTask: Task<Void, Never>?
     private var handshakeSucceeded = false
     private var lastInboundMessageAt: Date?
+    private var endpointURL: URL?
 
     init(
         socket: WebSocketClientProtocol = WebSocketClient(),
@@ -40,27 +46,26 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     func connect(host: String, port: Int) async throws {
-        teardownSocket()
-
-        socket.onReceive = { [weak self] data in
-            self?.handleIncomingData(data)
-        }
-        socket.onClose = { [weak self] in
-            self?.transitionToReconnecting()
-        }
-
-        state = .connecting
         let url = URL(string: "ws://\(host):\(port)/")!
-        try await socket.connect(url: url)
-        try await sendEnvelope(makeHandshakeEnvelope())
+        endpointURL = url
+        reconnectTask?.cancel()
+        reconnectTask = nil
+        try await establishConnection(to: url, connectionState: .connecting)
     }
 
     func disconnect() {
+        endpointURL = nil
+        reconnectTask?.cancel()
+        reconnectTask = nil
         state = .disconnected
         teardownSocket()
     }
 
     func sendPrompt(_ prompt: String, sessionID: String) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
         var command = Mrt_AgentCommand()
         command.sendPrompt = .with { request in
             request.sessionID = sessionID
@@ -111,6 +116,23 @@ final class ConnectionManager: ConnectionManaging {
             }
         case .codexOutput, .sessionList, .none:
             break
+        }
+    }
+
+    private func establishConnection(to url: URL, connectionState: ConnectionState) async throws {
+        teardownSocket()
+        configureSocketCallbacks()
+        state = connectionState
+        try await socket.connect(url: url)
+        try await sendEnvelope(makeHandshakeEnvelope())
+    }
+
+    private func configureSocketCallbacks() {
+        socket.onReceive = { [weak self] data in
+            self?.handleIncomingData(data)
+        }
+        socket.onClose = { [weak self] in
+            self?.transitionToReconnecting()
         }
     }
 
@@ -177,10 +199,28 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     private func transitionToReconnecting() {
-        guard state != .reconnecting else { return }
+        guard state != .disconnected else { return }
         state = .reconnecting
         heartbeatTask?.cancel()
         timeoutTask?.cancel()
+        heartbeatTask = nil
+        timeoutTask = nil
+        handshakeSucceeded = false
+        lastInboundMessageAt = nil
+
+        guard reconnectTask == nil, let endpointURL else {
+            return
+        }
+
+        reconnectTask = Task { [weak self] in
+            guard let self else { return }
+            defer { self.reconnectTask = nil }
+
+            do {
+                try await self.establishConnection(to: endpointURL, connectionState: .reconnecting)
+            } catch {
+            }
+        }
     }
 
     private func teardownSocket() {

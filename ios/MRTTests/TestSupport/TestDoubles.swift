@@ -5,11 +5,14 @@ import SwiftProtobuf
 final class StubWebSocketClient: WebSocketClientProtocol {
     var sentData: [Data] = []
     var connectedURL: URL?
+    var connectCalls: [URL] = []
+    var disconnectCallCount = 0
     var onReceive: ((Data) -> Void)?
     var onClose: (() -> Void)?
 
     func connect(url: URL) async throws {
         connectedURL = url
+        connectCalls.append(url)
     }
 
     func send(_ data: Data) async throws {
@@ -17,6 +20,7 @@ final class StubWebSocketClient: WebSocketClientProtocol {
     }
 
     func disconnect() {
+        disconnectCallCount += 1
         onClose?()
     }
 

@@ -24,14 +24,24 @@ final class ConnectionManagerTests: XCTestCase {
 
     func testConnectionManagerReconnectsOnSocketClose() async throws {
         let socket = StubWebSocketClient()
-        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 45)
 
         try await manager.connect(host: "127.0.0.1", port: 9876)
         socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
 
         socket.simulateClose()
 
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(socket.connectCalls.last?.absoluteString, "ws://127.0.0.1:9876/")
         XCTAssertEqual(manager.state, .reconnecting)
+        XCTAssertEqual(socket.sentData.count, 2)
+        let reconnectHandshake = try ProtobufCodec.decode(socket.sentData[1])
+        if case .handshake = reconnectHandshake.payload {
+        } else {
+            XCTFail("Expected reconnect handshake envelope")
+        }
     }
 
     func testConnectionManagerSendsHeartbeatEnvelopeAfterHandshakeSuccess() async throws {
@@ -61,8 +71,45 @@ final class ConnectionManagerTests: XCTestCase {
         try await manager.connect(host: "127.0.0.1", port: 9876)
         socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
 
-        try await Task.sleep(nanoseconds: 30_000_000)
+        try await Task.sleep(nanoseconds: 40_000_000)
 
+        XCTAssertEqual(socket.connectCalls.count, 2)
         XCTAssertEqual(manager.state, .reconnecting)
+        XCTAssertEqual(socket.sentData.count, 2)
+        let reconnectHandshake = try ProtobufCodec.decode(socket.sentData[1])
+        if case .handshake = reconnectHandshake.payload {
+        } else {
+            XCTFail("Expected reconnect handshake envelope")
+        }
+    }
+
+    func testConnectionManagerRejectsPromptSendBeforeHandshakeSuccess() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+
+        await XCTAssertThrowsErrorAsync {
+            try await manager.sendPrompt("hello", sessionID: "session-1")
+        }
+
+        XCTAssertEqual(socket.sentData.count, 1)
+        let firstEnvelope = try ProtobufCodec.decode(socket.sentData[0])
+        if case .handshake = firstEnvelope.payload {
+        } else {
+            XCTFail("Expected handshake envelope")
+        }
+    }
+}
+
+private func XCTAssertThrowsErrorAsync(
+    _ expression: @escaping () async throws -> Void,
+    file: StaticString = #filePath,
+    line: UInt = #line
+) async {
+    do {
+        try await expression()
+        XCTFail("Expected error to be thrown", file: file, line: line)
+    } catch {
     }
 }
