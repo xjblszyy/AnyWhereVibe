@@ -94,7 +94,7 @@ impl Default for LogConfig {
 
 pub fn default_storage_dir() -> PathBuf {
     dirs::home_dir()
-        .unwrap_or_else(|| PathBuf::from("~"))
+        .unwrap_or_else(|| std::env::temp_dir())
         .join(".mrt")
 }
 

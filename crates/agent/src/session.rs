@@ -3,7 +3,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use anyhow::{ensure, Context};
+use anyhow::{bail, ensure, Context};
 use proto_gen::{SessionInfo, TaskStatus};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -41,11 +41,20 @@ impl SessionManager {
     }
 
     pub fn list(&self) -> Vec<SessionInfo> {
-        self.sessions
+        let mut sessions: Vec<_> = self
+            .sessions
             .values()
             .cloned()
             .map(SessionInfo::from)
-            .collect()
+            .collect();
+        sessions.sort_by(|left, right| {
+            right
+                .last_active_ms
+                .cmp(&left.last_active_ms)
+                .then_with(|| right.created_at_ms.cmp(&left.created_at_ms))
+                .then_with(|| left.session_id.cmp(&right.session_id))
+        });
+        sessions
     }
 
     pub fn create(&mut self, name: &str, working_dir: &str) -> Result<Session> {
@@ -91,12 +100,14 @@ impl SessionManager {
                 )
             })?;
 
-            serde_json::from_str(&contents).with_context(|| {
+            let sessions: HashMap<String, Session> = serde_json::from_str(&contents).with_context(|| {
                 format!(
                     "failed to parse session storage file at {}",
                     storage_path.display()
                 )
-            })?
+            })?;
+            validate_sessions(&sessions)?;
+            sessions
         } else {
             HashMap::new()
         };
@@ -158,11 +169,13 @@ impl SessionManager {
     }
 
     fn try_update_status(&mut self, id: &str, status: TaskStatus) -> Result<()> {
-        if let Some(session) = self.sessions.get_mut(id) {
-            session.status = status as i32;
-            session.last_active_ms = now_ms();
-            self.persist()?;
-        }
+        let session = self
+            .sessions
+            .get_mut(id)
+            .with_context(|| format!("session '{}' does not exist", id))?;
+        session.status = status as i32;
+        session.last_active_ms = now_ms();
+        self.persist()?;
 
         Ok(())
     }
@@ -186,4 +199,31 @@ impl From<Session> for SessionInfo {
             working_dir: session.working_dir,
         }
     }
+}
+
+fn validate_sessions(sessions: &HashMap<String, Session>) -> Result<()> {
+    for (id, session) in sessions {
+        if !is_valid_task_status(session.status) {
+            bail!(
+                "failed to parse session storage file: session '{}' has invalid status {}",
+                id,
+                session.status
+            );
+        }
+    }
+
+    Ok(())
+}
+
+fn is_valid_task_status(status: i32) -> bool {
+    matches!(
+        status,
+        value if value == TaskStatus::Unspecified as i32
+            || value == TaskStatus::Idle as i32
+            || value == TaskStatus::Running as i32
+            || value == TaskStatus::WaitingApproval as i32
+            || value == TaskStatus::Completed as i32
+            || value == TaskStatus::Error as i32
+            || value == TaskStatus::Cancelled as i32
+    )
 }
