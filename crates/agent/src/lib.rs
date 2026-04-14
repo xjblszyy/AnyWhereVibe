@@ -1,6 +1,10 @@
 pub mod adapter;
 pub mod codex;
 pub mod config;
+pub mod daemon;
 pub mod error;
+pub mod server;
 pub mod session;
+pub mod test_support;
+pub mod transport;
 pub mod wire;
