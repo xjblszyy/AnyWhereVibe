@@ -239,6 +239,22 @@ final class ConnectionManagerTests: XCTestCase {
         XCTAssertEqual(manager.sessions.map(\.id), ["session-1"])
     }
 
+    func testConnectionManagerClearsLoadingStateOnNonFatalErrorEvent() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        try await manager.sendPrompt("hello", sessionID: "session-1")
+        XCTAssertEqual(manager.state, .loading)
+
+        socket.pushIncomingEnvelope(makeErrorEnvelope(message: "Temporary failure", fatal: false))
+
+        XCTAssertEqual(manager.state, .connected)
+        XCTAssertEqual(manager.messages.last?.content, "Temporary failure")
+    }
+
     func testConnectionManagerSendsApprovalResponsesAndCreateSessionCommands() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)

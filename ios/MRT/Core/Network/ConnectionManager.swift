@@ -394,6 +394,10 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     private func syncDispatcherOutputs() {
+        let dispatcherState = dispatcher.state
+        if dispatcherState != .disconnected || state == .disconnected {
+            state = dispatcherState
+        }
         messages = dispatcher.messages
         pendingApproval = dispatcher.pendingApproval
         sessions = dispatcher.sessions

@@ -71,6 +71,7 @@ struct ChatView: View {
 
                 PromptInputBar(
                     text: $viewModel.inputText,
+                    isLoading: viewModel.isLoading,
                     isDisabled: viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     onSend: {
                         Task { await viewModel.sendPrompt() }

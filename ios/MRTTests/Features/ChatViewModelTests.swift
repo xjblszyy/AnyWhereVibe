@@ -3,6 +3,25 @@ import XCTest
 
 final class ChatViewModelTests: XCTestCase {
     @MainActor
+    func testSwitchingSessionsChangesVisibleThreadButKeepsGlobalSystemMessages() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        connection.emitMessages([
+            ChatMessage(sessionID: "session-1", content: "Session one", isComplete: true, role: .assistant),
+            ChatMessage(sessionID: "session-2", content: "Session two", isComplete: true, role: .assistant),
+            ChatMessage(sessionID: nil, content: "Global system note", isComplete: true, role: .system),
+        ])
+        await Task.yield()
+
+        XCTAssertEqual(viewModel.messages.map(\.content), ["Session one", "Global system note"])
+
+        viewModel.activeSessionID = "session-2"
+
+        XCTAssertEqual(viewModel.messages.map(\.content), ["Session two", "Global system note"])
+    }
+
+    @MainActor
     func testSendPromptCreatesUserMessageAndStartsLoading() async {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)

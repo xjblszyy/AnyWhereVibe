@@ -52,7 +52,11 @@ final class ChatViewModel: ObservableObject {
             }
         }
     }
-    @Published var activeSessionID: String? = "session-1"
+    @Published var activeSessionID: String? = "session-1" {
+        didSet {
+            rebuildMessages()
+        }
+    }
 
     private let connectionManager: ConnectionManaging
     private var localMessages: [FeatureChatMessage] = []
@@ -168,7 +172,7 @@ final class ChatViewModel: ObservableObject {
                 timestamp: Date()
             )
         }
-        messages = localMessages + mappedRemote
+        messages = (localMessages + mappedRemote).filter(isVisibleInActiveThread)
     }
 
     private func mapRole(_ role: ChatMessage.Role) -> FeatureChatMessage.Role {
@@ -178,5 +182,13 @@ final class ChatViewModel: ObservableObject {
         case .system:
             return .system
         }
+    }
+
+    private func isVisibleInActiveThread(_ message: FeatureChatMessage) -> Bool {
+        if message.sessionID == activeSessionID {
+            return true
+        }
+
+        return message.sessionID == nil && message.role == .system
     }
 }
