@@ -7,12 +7,17 @@ final class StubWebSocketClient: WebSocketClientProtocol {
     var connectedURL: URL?
     var connectCalls: [URL] = []
     var disconnectCallCount = 0
+    var nextConnectDelayNanoseconds: UInt64?
     var onReceive: ((Data) -> Void)?
     var onClose: (() -> Void)?
 
     func connect(url: URL) async throws {
         connectedURL = url
         connectCalls.append(url)
+        if let delay = nextConnectDelayNanoseconds {
+            nextConnectDelayNanoseconds = nil
+            try await Task.sleep(nanoseconds: delay)
+        }
     }
 
     func send(_ data: Data) async throws {

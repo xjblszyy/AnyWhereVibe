@@ -34,6 +34,7 @@ final class ConnectionManager: ConnectionManaging {
     private var handshakeSucceeded = false
     private var lastInboundMessageAt: Date?
     private var endpointURL: URL?
+    private var connectionAttemptID = UUID()
 
     init(
         socket: WebSocketClientProtocol = WebSocketClient(),
@@ -48,13 +49,15 @@ final class ConnectionManager: ConnectionManaging {
     func connect(host: String, port: Int) async throws {
         let url = URL(string: "ws://\(host):\(port)/")!
         endpointURL = url
+        connectionAttemptID = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
-        try await establishConnection(to: url, connectionState: .connecting)
+        try await establishConnection(to: url, connectionState: .connecting, attemptID: connectionAttemptID)
     }
 
     func disconnect() {
         endpointURL = nil
+        connectionAttemptID = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
         state = .disconnected
@@ -96,7 +99,7 @@ final class ConnectionManager: ConnectionManaging {
             state = .connected
             lastInboundMessageAt = Date()
             startHeartbeatLoop()
-            startTimeoutLoop()
+            startInboundTimeoutLoop(attemptID: connectionAttemptID)
         case .approvalRequest:
             state = .showingApproval
         case .statusUpdate(let update):
@@ -119,12 +122,17 @@ final class ConnectionManager: ConnectionManaging {
         }
     }
 
-    private func establishConnection(to url: URL, connectionState: ConnectionState) async throws {
+    private func establishConnection(to url: URL, connectionState: ConnectionState, attemptID: UUID) async throws {
+        try ensureActiveAttempt(attemptID)
         teardownSocket()
+        try ensureActiveAttempt(attemptID)
         configureSocketCallbacks()
         state = connectionState
+        try ensureActiveAttempt(attemptID)
         try await socket.connect(url: url)
+        try ensureActiveAttempt(attemptID)
         try await sendEnvelope(makeHandshakeEnvelope())
+        startHandshakeTimeoutLoop(attemptID: attemptID)
     }
 
     private func configureSocketCallbacks() {
@@ -155,7 +163,29 @@ final class ConnectionManager: ConnectionManaging {
         }
     }
 
-    private func startTimeoutLoop() {
+    private func startHandshakeTimeoutLoop(attemptID: UUID) {
+        timeoutTask?.cancel()
+        timeoutTask = Task { [weak self] in
+            guard let self else { return }
+            let pollInterval = min(max(self.timeoutInterval / 4, 0.01), self.timeoutInterval)
+            let startedAt = Date()
+
+            while !Task.isCancelled {
+                try? await Task.sleep(nanoseconds: self.nanoseconds(from: pollInterval))
+                guard !Task.isCancelled else { return }
+
+                guard attemptID == self.connectionAttemptID else { return }
+                guard !self.handshakeSucceeded else { return }
+
+                if Date().timeIntervalSince(startedAt) > self.timeoutInterval {
+                    self.transitionToReconnecting()
+                    return
+                }
+            }
+        }
+    }
+
+    private func startInboundTimeoutLoop(attemptID: UUID) {
         timeoutTask?.cancel()
         timeoutTask = Task { [weak self] in
             guard let self else { return }
@@ -164,6 +194,8 @@ final class ConnectionManager: ConnectionManaging {
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: self.nanoseconds(from: pollInterval))
                 guard !Task.isCancelled else { return }
+
+                guard attemptID == self.connectionAttemptID else { return }
 
                 if let lastInboundMessageAt = self.lastInboundMessageAt,
                    Date().timeIntervalSince(lastInboundMessageAt) > self.timeoutInterval {
@@ -212,12 +244,15 @@ final class ConnectionManager: ConnectionManaging {
             return
         }
 
+        let attemptID = connectionAttemptID
         reconnectTask = Task { [weak self] in
             guard let self else { return }
             defer { self.reconnectTask = nil }
 
             do {
-                try await self.establishConnection(to: endpointURL, connectionState: .reconnecting)
+                try self.ensureActiveAttempt(attemptID)
+                try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
+            } catch is CancellationError {
             } catch {
             }
         }
@@ -242,5 +277,12 @@ final class ConnectionManager: ConnectionManaging {
 
     private func nanoseconds(from interval: TimeInterval) -> UInt64 {
         UInt64(interval * 1_000_000_000)
+    }
+
+    private func ensureActiveAttempt(_ attemptID: UUID) throws {
+        try Task.checkCancellation()
+        guard attemptID == connectionAttemptID else {
+            throw CancellationError()
+        }
     }
 }

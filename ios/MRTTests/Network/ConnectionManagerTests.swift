@@ -100,6 +100,65 @@ final class ConnectionManagerTests: XCTestCase {
             XCTFail("Expected handshake envelope")
         }
     }
+
+    func testConnectionManagerCancelledReconnectDoesNotResurrectAfterDisconnect() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+        socket.nextConnectDelayNanoseconds = 1_000_000_000
+
+        socket.simulateClose()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        manager.disconnect()
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(manager.state, .disconnected)
+        XCTAssertEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(socket.sentData.count, 1)
+    }
+
+    func testConnectionManagerCancelledReconnectDoesNotResurrectAfterNewConnect() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+        socket.nextConnectDelayNanoseconds = 1_000_000_000
+
+        socket.simulateClose()
+        try await Task.sleep(nanoseconds: 20_000_000)
+        try await manager.connect(host: "127.0.0.1", port: 9999)
+        try await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(manager.state, .connecting)
+        XCTAssertEqual(socket.connectCalls.count, 3)
+        XCTAssertEqual(socket.connectCalls.last?.absoluteString, "ws://127.0.0.1:9999/")
+        XCTAssertEqual(socket.sentData.count, 2)
+        let replacementHandshake = try ProtobufCodec.decode(socket.sentData[1])
+        if case .handshake = replacementHandshake.payload {
+        } else {
+            XCTFail("Expected replacement handshake envelope")
+        }
+    }
+
+    func testConnectionManagerReconnectsWhenHandshakeTimesOutWaitingForAgentInfo() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 0.02)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        try await Task.sleep(nanoseconds: 40_000_000)
+
+        XCTAssertEqual(manager.state, .reconnecting)
+        XCTAssertEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(socket.sentData.count, 2)
+        let reconnectHandshake = try ProtobufCodec.decode(socket.sentData[1])
+        if case .handshake = reconnectHandshake.payload {
+        } else {
+            XCTFail("Expected reconnect handshake envelope after handshake timeout")
+        }
+    }
 }
 
 private func XCTAssertThrowsErrorAsync(
