@@ -23,5 +23,7 @@ fn handshake_round_trip_preserves_protocol_and_device() {
         Payload::Handshake(value) => value,
         other => panic!("unexpected payload: {other:?}"),
     };
+    assert_eq!(handshake.protocol_version, 1);
+    assert_eq!(handshake.client_type, ClientType::PhoneIos as i32);
     assert_eq!(handshake.device_id, "iphone-1");
 }
