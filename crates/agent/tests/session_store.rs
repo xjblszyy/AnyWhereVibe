@@ -1,6 +1,6 @@
 use agent::session::SessionManager;
-use serde_json::json;
 use proto_gen::TaskStatus;
+use serde_json::json;
 use std::fs;
 use std::thread;
 use std::time::Duration;
@@ -14,7 +14,9 @@ fn whitespace_only_sessions_file_is_a_load_error() {
     fs::write(&sessions_path, "   \n\t").expect("write whitespace-only sessions file");
 
     let error = SessionManager::new(&sessions_path).expect_err("whitespace-only json must fail");
-    assert!(error.to_string().contains("failed to parse session storage file"));
+    assert!(error
+        .to_string()
+        .contains("failed to parse session storage file"));
 }
 
 #[test]
@@ -110,8 +112,11 @@ fn invalid_persisted_status_is_a_load_error() {
             "last_active_ms": 1
         }
     });
-    fs::write(&sessions_path, serde_json::to_vec_pretty(&bogus).expect("json"))
-        .expect("write invalid sessions file");
+    fs::write(
+        &sessions_path,
+        serde_json::to_vec_pretty(&bogus).expect("json"),
+    )
+    .expect("write invalid sessions file");
 
     let error = SessionManager::new(&sessions_path).expect_err("invalid status must fail");
     assert!(error.to_string().contains("invalid status 999"));

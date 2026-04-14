@@ -100,12 +100,13 @@ impl SessionManager {
                 )
             })?;
 
-            let sessions: HashMap<String, Session> = serde_json::from_str(&contents).with_context(|| {
-                format!(
-                    "failed to parse session storage file at {}",
-                    storage_path.display()
-                )
-            })?;
+            let sessions: HashMap<String, Session> =
+                serde_json::from_str(&contents).with_context(|| {
+                    format!(
+                        "failed to parse session storage file at {}",
+                        storage_path.display()
+                    )
+                })?;
             validate_sessions(&sessions)?;
             sessions
         } else {
