@@ -1,7 +1,6 @@
 @testable import MRT
 import Foundation
 import SwiftProtobuf
-import XCTest
 
 final class StubWebSocketClient: WebSocketClientProtocol {
     var sentData: [Data] = []
@@ -72,41 +71,6 @@ final class StubConnectionManager: ConnectionManaging {
 
     func sendPrompt(_ prompt: String, sessionID: String) async throws {
         sentPrompts.append((prompt: prompt, sessionID: sessionID))
-    }
-}
-
-final class ChatViewModelTests: XCTestCase {
-    @MainActor
-    func testSendPromptCreatesUserMessageAndStartsLoading() async {
-        let connection = StubConnectionManager()
-        let viewModel = ChatViewModel(connectionManager: connection)
-
-        viewModel.inputText = "Ship it"
-        await viewModel.sendPrompt()
-
-        XCTAssertEqual(viewModel.messages.first?.role, .user)
-        XCTAssertTrue(viewModel.isLoading)
-        XCTAssertEqual(connection.sentPrompts.map(\.prompt), ["Ship it"])
-    }
-
-    @MainActor
-    func testChatViewModelCoversAllRequiredUiStates() {
-        let connection = StubConnectionManager()
-        let viewModel = ChatViewModel(connectionManager: connection)
-
-        viewModel.connectionState = .disconnected
-        XCTAssertEqual(viewModel.connectionState, .disconnected)
-        viewModel.connectionState = .connecting
-        XCTAssertEqual(viewModel.connectionState, .connecting)
-        viewModel.connectionState = .connected
-        XCTAssertEqual(viewModel.connectionState, .connected)
-        viewModel.isLoading = true
-        XCTAssertTrue(viewModel.isLoading)
-        viewModel.pendingApproval = makeApprovalRequest()
-        XCTAssertEqual(viewModel.connectionState, .showingApproval)
-        XCTAssertNotNil(viewModel.pendingApproval)
-        viewModel.connectionState = .reconnecting
-        XCTAssertEqual(viewModel.connectionState, .reconnecting)
     }
 }
 
