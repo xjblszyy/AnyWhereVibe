@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct SettingsView: View {
-    let preferences: Preferences
+    @ObservedObject var preferences: Preferences
 
     @State private var mode: ConnectionMode
     @State private var host: String

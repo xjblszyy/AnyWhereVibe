@@ -5,7 +5,7 @@ enum ConnectionMode: String, Equatable {
     case managed
 }
 
-final class Preferences {
+final class Preferences: ObservableObject {
     private enum Keys {
         static let directHost = "direct.host"
         static let directPort = "direct.port"
@@ -16,29 +16,30 @@ final class Preferences {
 
     init(userDefaults: UserDefaults = .standard) {
         self.userDefaults = userDefaults
-    }
-
-    var directHost: String {
-        get { userDefaults.string(forKey: Keys.directHost) ?? "127.0.0.1" }
-        set { userDefaults.set(newValue, forKey: Keys.directHost) }
-    }
-
-    var directPort: Int {
-        get {
-            let value = userDefaults.integer(forKey: Keys.directPort)
-            return value == 0 ? 9876 : value
+        self.directHost = userDefaults.string(forKey: Keys.directHost) ?? "127.0.0.1"
+        let savedPort = userDefaults.integer(forKey: Keys.directPort)
+        self.directPort = savedPort == 0 ? 9876 : savedPort
+        if let rawValue = userDefaults.string(forKey: Keys.connectionMode),
+           let mode = ConnectionMode(rawValue: rawValue) {
+            self.connectionMode = mode
+        } else {
+            self.connectionMode = .direct
         }
-        set { userDefaults.set(newValue, forKey: Keys.directPort) }
     }
 
-    var connectionMode: ConnectionMode {
-        get {
-            guard let rawValue = userDefaults.string(forKey: Keys.connectionMode),
-                  let mode = ConnectionMode(rawValue: rawValue) else {
-                return .direct
-            }
-            return mode
-        }
-        set { userDefaults.set(newValue.rawValue, forKey: Keys.connectionMode) }
+    @Published var directHost: String {
+        didSet { userDefaults.set(directHost, forKey: Keys.directHost) }
+    }
+
+    @Published var directPort: Int {
+        didSet { userDefaults.set(directPort, forKey: Keys.directPort) }
+    }
+
+    @Published var connectionMode: ConnectionMode {
+        didSet { userDefaults.set(connectionMode.rawValue, forKey: Keys.connectionMode) }
+    }
+
+    var connectionConfigurationSignature: String {
+        "\(connectionMode.rawValue)|\(directHost)|\(directPort)"
     }
 }

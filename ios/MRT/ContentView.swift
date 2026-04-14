@@ -27,14 +27,13 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .chat
     @StateObject private var chatViewModel: ChatViewModel
     @StateObject private var sessionViewModel: SessionViewModel
-
-    private let preferences: Preferences
+    @StateObject private var preferences: Preferences
 
     init(
         connectionManager: ConnectionManaging = ConnectionManager(),
         preferences: Preferences = Preferences()
     ) {
-        self.preferences = preferences
+        _preferences = StateObject(wrappedValue: preferences)
         _sessionViewModel = StateObject(
             wrappedValue: SessionViewModel(connectionManager: connectionManager)
         )
@@ -72,7 +71,7 @@ struct ContentView: View {
             )
         }
         .background(GHColors.bgPrimary.ignoresSafeArea())
-        .task {
+        .task(id: preferences.connectionConfigurationSignature) {
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
                 return
             }

@@ -72,7 +72,9 @@ struct ChatView: View {
                 PromptInputBar(
                     text: $viewModel.inputText,
                     isLoading: viewModel.isLoading,
-                    isDisabled: viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+                    placeholder: viewModel.activeSessionID == nil ? "Select or create a session to start chatting" : "Send a prompt to the active session",
+                    message: viewModel.activeSessionID == nil ? "Select or create a session first." : nil,
+                    isDisabled: viewModel.activeSessionID == nil || viewModel.inputText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
                     onSend: {
                         Task { await viewModel.sendPrompt() }
                     }
@@ -88,7 +90,7 @@ struct ChatView: View {
                         }
                     }
 
-                SessionSidebarView(viewModel: sessionViewModel)
+                SessionSidebarView(viewModel: sessionViewModel, connectionState: viewModel.connectionState)
                     .transition(.move(edge: .leading))
             }
         }

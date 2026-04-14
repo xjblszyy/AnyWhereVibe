@@ -69,8 +69,10 @@ final class StubConnectionManager: ConnectionManaging {
     var sentPrompts: [(prompt: String, sessionID: String)] = []
     var respondedApprovals: [(approvalID: String, approved: Bool)] = []
     var createdSessions: [(name: String, workingDirectory: String)] = []
+    var connectCalls: [(host: String, port: Int)] = []
 
     func connect(host: String, port: Int) async throws {
+        connectCalls.append((host: host, port: port))
         state = .connected
         onStateChange?(state)
     }

@@ -3,9 +3,22 @@ import XCTest
 
 final class ChatViewModelTests: XCTestCase {
     @MainActor
+    func testConnectIfNeededRetriesWhenConfigurationChanges() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+        await viewModel.connectIfNeeded(host: "127.0.0.2", port: 9876, mode: .direct)
+
+        XCTAssertEqual(connection.connectCalls.map(\.host), ["127.0.0.1", "127.0.0.2"])
+    }
+
+    @MainActor
     func testSwitchingSessionsChangesVisibleThreadButKeepsGlobalSystemMessages() async {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)
+        viewModel.activeSessionID = "session-1"
 
         connection.emitMessages([
             ChatMessage(sessionID: "session-1", content: "Session one", isComplete: true, role: .assistant),
@@ -26,12 +39,29 @@ final class ChatViewModelTests: XCTestCase {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)
 
+        viewModel.activeSessionID = "session-1"
         viewModel.inputText = "Ship it"
         await viewModel.sendPrompt()
 
         XCTAssertEqual(viewModel.messages.first?.role, .user)
         XCTAssertTrue(viewModel.isLoading)
         XCTAssertEqual(connection.sentPrompts.map(\.prompt), ["Ship it"])
+    }
+
+    @MainActor
+    func testSendPromptWithoutActiveSessionDoesNothing() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        viewModel.activeSessionID = nil
+        viewModel.inputText = "Ship it"
+
+        await viewModel.sendPrompt()
+
+        XCTAssertEqual(connection.sentPrompts.count, 0)
+        XCTAssertEqual(viewModel.messages.count, 0)
+        XCTAssertFalse(viewModel.isLoading)
+        XCTAssertEqual(viewModel.inputText, "Ship it")
     }
 
     @MainActor
@@ -59,6 +89,8 @@ final class ChatViewModelTests: XCTestCase {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)
         let approval = makeApprovalRequest()
+
+        viewModel.activeSessionID = "session-1"
 
         connection.emitState(.connecting)
         await Task.yield()
@@ -89,6 +121,31 @@ final class ChatViewModelTests: XCTestCase {
 }
 
 final class SessionViewModelTests: XCTestCase {
+    @MainActor
+    func testSessionViewModelDoesNotCreateRemoteSessionWhileConnecting() async {
+        let connection = StubConnectionManager()
+        connection.state = .connecting
+        let viewModel = SessionViewModel(connectionManager: connection, sessions: [])
+
+        viewModel.createSession(named: "Daily")
+        await Task.yield()
+
+        XCTAssertTrue(connection.createdSessions.isEmpty)
+        XCTAssertTrue(viewModel.sessions.isEmpty)
+    }
+
+    @MainActor
+    func testSessionViewModelCreatesRemoteSessionWhenConnected() async {
+        let connection = StubConnectionManager()
+        connection.state = .connected
+        let viewModel = SessionViewModel(connectionManager: connection, sessions: [])
+
+        viewModel.createSession(named: "Daily")
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(connection.createdSessions.map(\.name), ["Daily"])
+    }
+
     @MainActor
     func testSessionViewModelAcceptsAuthoritativeSessionUpdatesAndPreservesSelection() async {
         let connection = StubConnectionManager()

@@ -24,11 +24,17 @@ final class SessionViewModel: ObservableObject {
         activeSessionID = id
     }
 
+    func canCreateSession(connectionState: ConnectionState? = nil) -> Bool {
+        guard connectionManager != nil else { return true }
+        return (connectionState ?? connectionManager?.state) == .connected
+    }
+
     func createSession(named name: String) {
         let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedName.isEmpty else { return }
 
-        if let connectionManager, connectionManager.state != .disconnected {
+        if let connectionManager {
+            guard canCreateSession() else { return }
             Task {
                 try? await connectionManager.createSession(name: trimmedName, workingDirectory: "")
             }

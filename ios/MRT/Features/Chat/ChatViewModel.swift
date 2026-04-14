@@ -40,6 +40,12 @@ struct FeatureChatMessage: Identifiable, Equatable {
 
 @MainActor
 final class ChatViewModel: ObservableObject {
+    private struct ConnectionConfiguration: Equatable {
+        let host: String
+        let port: Int
+        let mode: ConnectionMode
+    }
+
     @Published var messages: [FeatureChatMessage] = []
     @Published var inputText = ""
     @Published var connectionState: ConnectionState
@@ -52,7 +58,7 @@ final class ChatViewModel: ObservableObject {
             }
         }
     }
-    @Published var activeSessionID: String? = "session-1" {
+    @Published var activeSessionID: String? {
         didSet {
             rebuildMessages()
         }
@@ -61,7 +67,7 @@ final class ChatViewModel: ObservableObject {
     private let connectionManager: ConnectionManaging
     private var localMessages: [FeatureChatMessage] = []
     private var remoteMessages: [ChatMessage] = []
-    private var hasAttemptedInitialConnect = false
+    private var lastConnectionConfiguration: ConnectionConfiguration?
 
     init(connectionManager: ConnectionManaging) {
         self.connectionManager = connectionManager
@@ -86,6 +92,7 @@ final class ChatViewModel: ObservableObject {
     func sendPrompt() async {
         let prompt = inputText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !prompt.isEmpty else { return }
+        guard let activeSessionID else { return }
 
         let userMessage = FeatureChatMessage(
             sessionID: activeSessionID,
@@ -100,7 +107,7 @@ final class ChatViewModel: ObservableObject {
         connectionState = .loading
 
         do {
-            try await connectionManager.sendPrompt(prompt, sessionID: activeSessionID ?? "session-1")
+            try await connectionManager.sendPrompt(prompt, sessionID: activeSessionID)
         } catch {
             localMessages.append(
                 FeatureChatMessage(
@@ -131,12 +138,17 @@ final class ChatViewModel: ObservableObject {
     }
 
     func connectIfNeeded(host: String, port: Int, mode: ConnectionMode) async {
+        let configuration = ConnectionConfiguration(
+            host: host.trimmingCharacters(in: .whitespacesAndNewlines),
+            port: port,
+            mode: mode
+        )
+        guard configuration != lastConnectionConfiguration else { return }
+        lastConnectionConfiguration = configuration
         guard mode == .direct else { return }
-        guard !hasAttemptedInitialConnect else { return }
-        hasAttemptedInitialConnect = true
 
         do {
-            try await connectionManager.connect(host: host, port: port)
+            try await connectionManager.connect(host: configuration.host, port: configuration.port)
         } catch {
             connectionState = .disconnected
         }
