@@ -144,14 +144,16 @@ final class ChatViewModel: ObservableObject {
             port: port,
             mode: mode
         )
-        guard configuration != lastConnectionConfiguration else { return }
+        let currentState = connectionManager.state
+        let canRetryCurrentConfiguration = currentState == .disconnected || currentState == .reconnecting
+        guard configuration != lastConnectionConfiguration || canRetryCurrentConfiguration else { return }
         lastConnectionConfiguration = configuration
         guard mode == .direct else { return }
 
         do {
             try await connectionManager.connect(host: configuration.host, port: configuration.port)
         } catch {
-            connectionState = .disconnected
+            connectionState = connectionManager.state
         }
     }
 

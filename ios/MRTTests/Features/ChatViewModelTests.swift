@@ -15,6 +15,20 @@ final class ChatViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testConnectIfNeededRetriesSameConfigurationWhenDisconnectedOrReconnecting() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+        connection.emitState(.disconnected)
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+        connection.emitState(.reconnecting)
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+
+        XCTAssertEqual(connection.connectCalls.map(\.host), ["127.0.0.1", "127.0.0.1", "127.0.0.1"])
+    }
+
+    @MainActor
     func testSwitchingSessionsChangesVisibleThreadButKeepsGlobalSystemMessages() async {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)

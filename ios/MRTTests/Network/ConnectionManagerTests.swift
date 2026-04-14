@@ -174,6 +174,33 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerKeepsRetryingAfterRepeatedHandshakeTimeoutsWhileReconnecting() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 0.02)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        try await Task.sleep(nanoseconds: 90_000_000)
+
+        XCTAssertGreaterThanOrEqual(socket.connectCalls.count, 3)
+        XCTAssertEqual(manager.state, .reconnecting)
+        XCTAssertGreaterThanOrEqual(socket.sentData.count, 3)
+    }
+
+    func testConnectionManagerInitialConnectFailureTransitionsIntoReconnectRetries() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 0.1, timeoutInterval: 0.02)
+        socket.connectErrors = [
+            StubWebSocketClient.StubError.connectFailed,
+            StubWebSocketClient.StubError.connectFailed,
+        ]
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        try await Task.sleep(nanoseconds: 40_000_000)
+
+        XCTAssertGreaterThanOrEqual(socket.connectCalls.count, 2)
+        XCTAssertEqual(manager.state, .reconnecting)
+    }
+
     func testConnectionManagerIgnoresStaleReceiveCallbackAfterReplacementConnect() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)

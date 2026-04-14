@@ -3,11 +3,16 @@ import Foundation
 import SwiftProtobuf
 
 final class StubWebSocketClient: WebSocketClientProtocol {
+    enum StubError: Error {
+        case connectFailed
+    }
+
     var sentData: [Data] = []
     var connectedURL: URL?
     var connectCalls: [URL] = []
     var disconnectCallCount = 0
     var nextConnectDelayNanoseconds: UInt64?
+    var connectErrors: [Error] = []
     var receiveCallbackHistory: [(Data) -> Void] = []
     var closeCallbackHistory: [() -> Void] = []
     var onReceive: ((Data) -> Void)? {
@@ -28,6 +33,9 @@ final class StubWebSocketClient: WebSocketClientProtocol {
     func connect(url: URL) async throws {
         connectedURL = url
         connectCalls.append(url)
+        if !connectErrors.isEmpty {
+            throw connectErrors.removeFirst()
+        }
         if let delay = nextConnectDelayNanoseconds {
             nextConnectDelayNanoseconds = nil
             try await Task.sleep(nanoseconds: delay)
@@ -70,10 +78,15 @@ final class StubConnectionManager: ConnectionManaging {
     var respondedApprovals: [(approvalID: String, approved: Bool)] = []
     var createdSessions: [(name: String, workingDirectory: String)] = []
     var connectCalls: [(host: String, port: Int)] = []
+    var connectError: Error?
+    var connectStateAfterConnect: ConnectionState?
 
     func connect(host: String, port: Int) async throws {
         connectCalls.append((host: host, port: port))
-        state = .connected
+        if let connectError {
+            throw connectError
+        }
+        state = connectStateAfterConnect ?? .connected
         onStateChange?(state)
     }
 

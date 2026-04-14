@@ -32,6 +32,8 @@ protocol ConnectionManaging: AnyObject {
 }
 
 final class ConnectionManager: ConnectionManaging {
+    private static let reconnectRetryDelay: TimeInterval = 0.02
+
     private let socket: WebSocketClientProtocol
     private let heartbeatInterval: TimeInterval
     private let timeoutInterval: TimeInterval
@@ -94,7 +96,13 @@ final class ConnectionManager: ConnectionManaging {
         connectionAttemptID = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
-        try await establishConnection(to: url, connectionState: .connecting, attemptID: connectionAttemptID)
+        do {
+            try await establishConnection(to: url, connectionState: .connecting, attemptID: connectionAttemptID)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            transitionToReconnecting()
+        }
     }
 
     func disconnect() {
@@ -341,7 +349,6 @@ final class ConnectionManager: ConnectionManaging {
     private func transitionToReconnecting() {
         synchronizeOnMain {
             guard self.state != .disconnected else { return }
-            guard self.state != .reconnecting else { return }
             self.state = .reconnecting
             self.teardownSocket()
 
@@ -353,17 +360,32 @@ final class ConnectionManager: ConnectionManaging {
             self.connectionAttemptID = attemptID
             self.reconnectTask = Task { [weak self] in
                 guard let self else { return }
-                defer { self.reconnectTask = nil }
+                var shouldRetry = false
+                defer {
+                    self.reconnectTask = nil
+                    if shouldRetry {
+                        self.scheduleReconnectRetry()
+                    }
+                }
 
                 do {
                     try self.ensureActiveAttempt(attemptID)
                     try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
                 } catch is CancellationError {
                 } catch {
+                    shouldRetry = true
                 }
             }
         }
    }
+
+    private func scheduleReconnectRetry() {
+        Task { [weak self] in
+            guard let self else { return }
+            try? await Task.sleep(nanoseconds: self.nanoseconds(from: Self.reconnectRetryDelay))
+            self.transitionToReconnecting()
+        }
+    }
 
     private func teardownSocket() {
         heartbeatTask?.cancel()
