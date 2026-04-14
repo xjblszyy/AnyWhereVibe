@@ -65,6 +65,64 @@ final class ChatViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testChatViewModelPreservesMultiTurnThreadOrderAndRemoteTimestamps() async throws {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+        let assistantReplyOneID = UUID()
+        let assistantReplyTwoID = UUID()
+
+        viewModel.activeSessionID = "session-1"
+
+        viewModel.inputText = "First prompt"
+        await viewModel.sendPrompt()
+
+        connection.emitMessages([
+            ChatMessage(
+                id: assistantReplyOneID,
+                sessionID: "session-1",
+                content: "First reply",
+                isComplete: true,
+                role: .assistant
+            ),
+        ])
+        await Task.yield()
+
+        let firstReplyTimestamp = try XCTUnwrap(
+            viewModel.messages.first(where: { $0.id == assistantReplyOneID })?.timestamp
+        )
+
+        viewModel.inputText = "Second prompt"
+        await viewModel.sendPrompt()
+
+        connection.emitMessages([
+            ChatMessage(
+                id: assistantReplyOneID,
+                sessionID: "session-1",
+                content: "First reply",
+                isComplete: true,
+                role: .assistant
+            ),
+            ChatMessage(
+                id: assistantReplyTwoID,
+                sessionID: "session-1",
+                content: "Second reply",
+                isComplete: true,
+                role: .assistant
+            ),
+        ])
+        await Task.yield()
+
+        XCTAssertEqual(
+            viewModel.messages.map(\.content),
+            ["First prompt", "First reply", "Second prompt", "Second reply"]
+        )
+        XCTAssertEqual(
+            viewModel.messages.first(where: { $0.id == assistantReplyOneID })?.timestamp,
+            firstReplyTimestamp
+        )
+    }
+
+    @MainActor
     func testChatViewModelCoversAllRequiredUiStates() {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)

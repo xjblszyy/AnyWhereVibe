@@ -67,6 +67,7 @@ final class ChatViewModel: ObservableObject {
     private let connectionManager: ConnectionManaging
     private var localMessages: [FeatureChatMessage] = []
     private var remoteMessages: [ChatMessage] = []
+    private var remoteMessageTimestamps: [UUID: Date] = [:]
     private var lastConnectionConfiguration: ConnectionConfiguration?
 
     init(connectionManager: ConnectionManaging) {
@@ -163,6 +164,7 @@ final class ChatViewModel: ObservableObject {
         connectionManager.onMessagesChange = { [weak self] newMessages in
             Task { @MainActor in
                 self?.remoteMessages = newMessages
+                self?.cacheRemoteMessageTimestamps(for: newMessages)
                 self?.rebuildMessages()
             }
         }
@@ -181,10 +183,19 @@ final class ChatViewModel: ObservableObject {
                 content: message.content,
                 isComplete: message.isComplete,
                 role: mapRole(message.role),
-                timestamp: Date()
+                timestamp: remoteMessageTimestamps[message.id] ?? Date()
             )
         }
-        messages = (localMessages + mappedRemote).filter(isVisibleInActiveThread)
+        messages = (localMessages + mappedRemote)
+            .filter(isVisibleInActiveThread)
+            .enumerated()
+            .sorted { lhs, rhs in
+                if lhs.element.timestamp == rhs.element.timestamp {
+                    return lhs.offset < rhs.offset
+                }
+                return lhs.element.timestamp < rhs.element.timestamp
+            }
+            .map(\.element)
     }
 
     private func mapRole(_ role: ChatMessage.Role) -> FeatureChatMessage.Role {
@@ -202,5 +213,13 @@ final class ChatViewModel: ObservableObject {
         }
 
         return message.sessionID == nil && message.role == .system
+    }
+
+    private func cacheRemoteMessageTimestamps(for messages: [ChatMessage]) {
+        var nextTimestamp = Date()
+        for message in messages where remoteMessageTimestamps[message.id] == nil {
+            remoteMessageTimestamps[message.id] = nextTimestamp
+            nextTimestamp = nextTimestamp.addingTimeInterval(0.001)
+        }
     }
 }
