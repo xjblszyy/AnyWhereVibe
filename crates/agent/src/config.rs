@@ -45,7 +45,7 @@ pub struct AgentConfig {
 impl Default for AgentConfig {
     fn default() -> Self {
         Self {
-            adapter: "codex-app-server".into(),
+            adapter: "mock".into(),
             auto_fallback: true,
         }
     }

@@ -37,7 +37,7 @@ fn update_status_returns_result_and_persists_sessions_to_disk() {
     assert_eq!(session.created_at_ms, session.last_active_ms);
 
     manager
-        .update_status(&session.id, TaskStatus::Running)
+        .update_status(&session.id, TaskStatus::Completed)
         .expect("update status");
 
     let reloaded = SessionManager::new(&sessions_path).expect("reload manager");
@@ -48,7 +48,7 @@ fn update_status_returns_result_and_persists_sessions_to_disk() {
     assert_eq!(persisted.id, session.id);
     assert_eq!(persisted.name, "Main");
     assert_eq!(persisted.working_dir, "/tmp/project");
-    assert_eq!(persisted.status, TaskStatus::Running as i32);
+    assert_eq!(persisted.status, TaskStatus::Completed as i32);
     assert_eq!(persisted.created_at_ms, session.created_at_ms);
     assert!(persisted.last_active_ms >= persisted.created_at_ms);
 
@@ -59,7 +59,7 @@ fn update_status_returns_result_and_persists_sessions_to_disk() {
     assert_eq!(listed.session_id, session.id);
     assert_eq!(listed.name, "Main");
     assert_eq!(listed.working_dir, "/tmp/project");
-    assert_eq!(listed.status, TaskStatus::Running as i32);
+    assert_eq!(listed.status, TaskStatus::Completed as i32);
     assert_eq!(listed.created_at_ms, session.created_at_ms);
     assert_eq!(listed.last_active_ms, persisted.last_active_ms);
 }
@@ -120,4 +120,42 @@ fn invalid_persisted_status_is_a_load_error() {
 
     let error = SessionManager::new(&sessions_path).expect_err("invalid status must fail");
     assert!(error.to_string().contains("invalid status 999"));
+}
+
+#[test]
+fn running_and_waiting_approval_sessions_normalize_to_idle_on_load() {
+    let temp_dir = tempdir().expect("temp dir");
+    let sessions_path = temp_dir.path().join("sessions.json");
+
+    let persisted = json!({
+        "session-running": {
+            "id": "session-running",
+            "name": "Running",
+            "status": TaskStatus::Running as i32,
+            "working_dir": "/tmp/running",
+            "created_at_ms": 1,
+            "last_active_ms": 2
+        },
+        "session-approval": {
+            "id": "session-approval",
+            "name": "Approval",
+            "status": TaskStatus::WaitingApproval as i32,
+            "working_dir": "/tmp/approval",
+            "created_at_ms": 3,
+            "last_active_ms": 4
+        }
+    });
+    fs::write(
+        &sessions_path,
+        serde_json::to_vec_pretty(&persisted).expect("json"),
+    )
+    .expect("write sessions file");
+
+    let manager = SessionManager::new(&sessions_path).expect("load manager");
+
+    let running = manager.get("session-running").expect("running session");
+    let approval = manager.get("session-approval").expect("approval session");
+
+    assert_eq!(running.status, TaskStatus::Idle as i32);
+    assert_eq!(approval.status, TaskStatus::Idle as i32);
 }

@@ -36,6 +36,8 @@ final class MessageDispatcher {
             )
             if error.fatal {
                 state = .reconnecting
+            } else if state != .disconnected {
+                state = .connected
             }
         case .none:
             break

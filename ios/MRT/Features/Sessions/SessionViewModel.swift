@@ -10,7 +10,7 @@ final class SessionViewModel: ObservableObject {
 
     init(connectionManager: ConnectionManaging? = nil, sessions: [SessionModel]? = nil) {
         self.connectionManager = connectionManager
-        let initialSessions = sessions ?? Self.defaultSessions
+        let initialSessions = sessions ?? (connectionManager == nil ? Self.defaultSessions : connectionManager?.sessions ?? [])
         self.sessions = initialSessions
         self.activeSessionID = initialSessions.first?.id
         connectionManager?.onSessionsChange = { [weak self] authoritativeSessions in

@@ -198,6 +198,19 @@ async fn handle_connection(stream: TcpStream, state: ServerState) -> Result<()> 
     )
     .await?;
 
+    let session_list = ensure_usable_session_list(&state).await?;
+    send_event(
+        &mut write,
+        &handshake_envelope.request_id,
+        AgentEvent {
+            evt: Some(Evt::SessionList(SessionListUpdate {
+                sessions: session_list.clone(),
+            })),
+        },
+    )
+    .await?;
+    broadcast_session_list(&state, session_list);
+
     let mut outbound_rx = state.outbound.subscribe();
     let mut heartbeat = time::interval_at(Instant::now() + HEARTBEAT_INTERVAL, HEARTBEAT_INTERVAL);
     heartbeat.set_missed_tick_behavior(MissedTickBehavior::Delay);
@@ -548,6 +561,18 @@ fn broadcast_session_list(state: &ServerState, sessions: Vec<SessionInfo>) {
             evt: Some(Evt::SessionList(SessionListUpdate { sessions })),
         },
     );
+}
+
+async fn ensure_usable_session_list(state: &ServerState) -> Result<Vec<SessionInfo>> {
+    let mut sessions = state.sessions.lock().await;
+    if sessions.list().is_empty() {
+        let working_dir = std::env::current_dir()
+            .unwrap_or_else(|_| std::path::PathBuf::from("."))
+            .to_string_lossy()
+            .into_owned();
+        let _ = sessions.create("Main Session", &working_dir)?;
+    }
+    Ok(sessions.list())
 }
 
 async fn parse_incoming_message(write: &mut WsWrite, message: Message) -> Result<IncomingFrame> {

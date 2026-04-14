@@ -41,6 +41,25 @@ final class MessageDispatcherTests: XCTestCase {
         XCTAssertEqual(dispatcher.messages.last?.role, .system)
         XCTAssertEqual(dispatcher.state, .disconnected)
     }
+
+    func testDispatcherClearsLoadingStateAfterNonFatalError() {
+        let dispatcher = MessageDispatcher()
+
+        var runningEnvelope = Mrt_Envelope()
+        runningEnvelope.event = .with { event in
+            event.statusUpdate = .with { update in
+                update.sessionID = "session-1"
+                update.status = .running
+            }
+        }
+
+        dispatcher.apply(runningEnvelope)
+        XCTAssertEqual(dispatcher.state, .loading)
+
+        dispatcher.apply(makeErrorEnvelope(message: "Busy", fatal: false))
+
+        XCTAssertEqual(dispatcher.state, .connected)
+    }
 }
 
 final class PreferencesTests: XCTestCase {

@@ -151,56 +151,58 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     private func handleIncomingData(_ data: Data, attemptID: UUID) {
-        guard attemptID == connectionAttemptID else {
-            return
-        }
+        synchronizeOnMain {
+            guard attemptID == self.connectionAttemptID else {
+                return
+            }
 
-        guard let envelope = try? ProtobufCodec.decode(data) else {
-            return
-        }
+            guard let envelope = try? ProtobufCodec.decode(data) else {
+                return
+            }
 
-        guard attemptID == connectionAttemptID else {
-            return
-        }
+            guard attemptID == self.connectionAttemptID else {
+                return
+            }
 
-        lastInboundMessageAt = Date()
+            self.lastInboundMessageAt = Date()
 
-        guard case .event(let event)? = envelope.payload else {
-            return
-        }
+            guard case .event(let event)? = envelope.payload else {
+                return
+            }
 
-        switch event.evt {
-        case .agentInfo:
-            guard attemptID == connectionAttemptID else { return }
-            guard !handshakeSucceeded else { return }
-            handshakeSucceeded = true
-            state = .connected
-            lastInboundMessageAt = Date()
-            startHeartbeatLoop()
-            startInboundTimeoutLoop(attemptID: attemptID)
-        case .approvalRequest:
-            state = .showingApproval
-        case .statusUpdate(let update):
-            switch update.status {
-            case .running:
-                state = .loading
-            case .waitingApproval:
-                state = .showingApproval
-            case .completed, .cancelled, .error, .idle:
-                state = .connected
-            case .unspecified, .UNRECOGNIZED:
+            switch event.evt {
+            case .agentInfo:
+                guard attemptID == self.connectionAttemptID else { return }
+                guard !self.handshakeSucceeded else { return }
+                self.handshakeSucceeded = true
+                self.state = .connected
+                self.lastInboundMessageAt = Date()
+                self.startHeartbeatLoop()
+                self.startInboundTimeoutLoop(attemptID: attemptID)
+            case .approvalRequest:
+                self.state = .showingApproval
+            case .statusUpdate(let update):
+                switch update.status {
+                case .running:
+                    self.state = .loading
+                case .waitingApproval:
+                    self.state = .showingApproval
+                case .completed, .cancelled, .error, .idle:
+                    self.state = .connected
+                case .unspecified, .UNRECOGNIZED:
+                    break
+                }
+            case .error(let error):
+                if error.fatal {
+                    self.transitionToReconnecting()
+                }
+            case .codexOutput, .sessionList, .none:
                 break
             }
-        case .error(let error):
-            if error.fatal {
-                transitionToReconnecting()
-            }
-        case .codexOutput, .sessionList, .none:
-            break
-        }
 
-        dispatcher.apply(envelope)
-        syncDispatcherOutputs()
+            self.dispatcher.apply(envelope)
+            self.syncDispatcherOutputs()
+        }
     }
 
     private func establishConnection(to url: URL, connectionState: ConnectionState, attemptID: UUID) async throws {
@@ -226,10 +228,12 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     private func handleSocketClose(attemptID: UUID) {
-        guard attemptID == connectionAttemptID else {
-            return
+        synchronizeOnMain {
+            guard attemptID == self.connectionAttemptID else {
+                return
+            }
+            self.transitionToReconnecting()
         }
-        transitionToReconnecting()
     }
 
     private func startHeartbeatLoop() {
@@ -239,7 +243,9 @@ final class ConnectionManager: ConnectionManaging {
 
             while !Task.isCancelled {
                 try? await Task.sleep(nanoseconds: self.nanoseconds(from: self.heartbeatInterval))
-                guard !Task.isCancelled, self.handshakeSucceeded else { return }
+                guard !Task.isCancelled else { return }
+                let shouldSendHeartbeat = self.readOnMain { self.handshakeSucceeded }
+                guard shouldSendHeartbeat else { return }
 
                 var heartbeat = Mrt_Envelope()
                 heartbeat.protocolVersion = 1
@@ -262,10 +268,13 @@ final class ConnectionManager: ConnectionManaging {
                 try? await Task.sleep(nanoseconds: self.nanoseconds(from: pollInterval))
                 guard !Task.isCancelled else { return }
 
-                guard attemptID == self.connectionAttemptID else { return }
-                guard !self.handshakeSucceeded else { return }
+                let shouldReconnect = self.readOnMain {
+                    guard attemptID == self.connectionAttemptID else { return false }
+                    guard !self.handshakeSucceeded else { return false }
+                    return Date().timeIntervalSince(startedAt) > self.timeoutInterval
+                }
 
-                if Date().timeIntervalSince(startedAt) > self.timeoutInterval {
+                if shouldReconnect {
                     self.transitionToReconnecting()
                     return
                 }
@@ -283,10 +292,13 @@ final class ConnectionManager: ConnectionManaging {
                 try? await Task.sleep(nanoseconds: self.nanoseconds(from: pollInterval))
                 guard !Task.isCancelled else { return }
 
-                guard attemptID == self.connectionAttemptID else { return }
+                let shouldReconnect = self.readOnMain {
+                    guard attemptID == self.connectionAttemptID else { return false }
+                    guard let lastInboundMessageAt = self.lastInboundMessageAt else { return false }
+                    return Date().timeIntervalSince(lastInboundMessageAt) > self.timeoutInterval
+                }
 
-                if let lastInboundMessageAt = self.lastInboundMessageAt,
-                   Date().timeIntervalSince(lastInboundMessageAt) > self.timeoutInterval {
+                if shouldReconnect {
                     self.transitionToReconnecting()
                     return
                 }
@@ -319,28 +331,31 @@ final class ConnectionManager: ConnectionManaging {
     }
 
     private func transitionToReconnecting() {
-        guard state != .disconnected else { return }
-        state = .reconnecting
-        teardownSocket()
+        synchronizeOnMain {
+            guard self.state != .disconnected else { return }
+            guard self.state != .reconnecting else { return }
+            self.state = .reconnecting
+            self.teardownSocket()
 
-        guard reconnectTask == nil, let endpointURL else {
-            return
-        }
+            guard self.reconnectTask == nil, let endpointURL = self.endpointURL else {
+                return
+            }
 
-        let attemptID = UUID()
-        connectionAttemptID = attemptID
-        reconnectTask = Task { [weak self] in
-            guard let self else { return }
-            defer { self.reconnectTask = nil }
+            let attemptID = UUID()
+            self.connectionAttemptID = attemptID
+            self.reconnectTask = Task { [weak self] in
+                guard let self else { return }
+                defer { self.reconnectTask = nil }
 
-            do {
-                try self.ensureActiveAttempt(attemptID)
-                try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
-            } catch is CancellationError {
-            } catch {
+                do {
+                    try self.ensureActiveAttempt(attemptID)
+                    try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
+                } catch is CancellationError {
+                } catch {
+                }
             }
         }
-    }
+   }
 
     private func teardownSocket() {
         heartbeatTask?.cancel()
@@ -374,5 +389,20 @@ final class ConnectionManager: ConnectionManaging {
         messages = dispatcher.messages
         pendingApproval = dispatcher.pendingApproval
         sessions = dispatcher.sessions
+    }
+
+    private func synchronizeOnMain(_ work: () -> Void) {
+        if Thread.isMainThread {
+            work()
+        } else {
+            DispatchQueue.main.sync(execute: work)
+        }
+    }
+
+    private func readOnMain<T>(_ work: () -> T) -> T {
+        if Thread.isMainThread {
+            return work()
+        }
+        return DispatchQueue.main.sync(execute: work)
     }
 }

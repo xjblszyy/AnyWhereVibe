@@ -92,6 +92,7 @@ impl SessionManager {
             )
         })?;
 
+        let mut normalized_transient_status = false;
         let sessions = if storage_path.exists() {
             let contents = fs::read_to_string(&storage_path).with_context(|| {
                 format!(
@@ -108,15 +109,23 @@ impl SessionManager {
                     )
                 })?;
             validate_sessions(&sessions)?;
+            let mut sessions = sessions;
+            normalize_transient_statuses(&mut sessions, &mut normalized_transient_status);
             sessions
         } else {
             HashMap::new()
         };
 
-        Ok(Self {
+        let manager = Self {
             sessions,
             storage_path,
-        })
+        };
+
+        if normalized_transient_status {
+            manager.persist()?;
+        }
+
+        Ok(manager)
     }
 
     fn persist(&self) -> Result<()> {
@@ -214,6 +223,20 @@ fn validate_sessions(sessions: &HashMap<String, Session>) -> Result<()> {
     }
 
     Ok(())
+}
+
+fn normalize_transient_statuses(
+    sessions: &mut HashMap<String, Session>,
+    normalized_transient_status: &mut bool,
+) {
+    for session in sessions.values_mut() {
+        if session.status == TaskStatus::Running as i32
+            || session.status == TaskStatus::WaitingApproval as i32
+        {
+            session.status = TaskStatus::Idle as i32;
+            *normalized_transient_status = true;
+        }
+    }
 }
 
 fn is_valid_task_status(status: i32) -> bool {
