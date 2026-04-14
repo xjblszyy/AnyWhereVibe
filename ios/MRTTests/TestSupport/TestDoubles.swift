@@ -1,6 +1,7 @@
 @testable import MRT
 import Foundation
 import SwiftProtobuf
+import XCTest
 
 final class StubWebSocketClient: WebSocketClientProtocol {
     var sentData: [Data] = []
@@ -74,6 +75,41 @@ final class StubConnectionManager: ConnectionManaging {
     }
 }
 
+final class ChatViewModelTests: XCTestCase {
+    @MainActor
+    func testSendPromptCreatesUserMessageAndStartsLoading() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        viewModel.inputText = "Ship it"
+        await viewModel.sendPrompt()
+
+        XCTAssertEqual(viewModel.messages.first?.role, .user)
+        XCTAssertTrue(viewModel.isLoading)
+        XCTAssertEqual(connection.sentPrompts.map(\.prompt), ["Ship it"])
+    }
+
+    @MainActor
+    func testChatViewModelCoversAllRequiredUiStates() {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        viewModel.connectionState = .disconnected
+        XCTAssertEqual(viewModel.connectionState, .disconnected)
+        viewModel.connectionState = .connecting
+        XCTAssertEqual(viewModel.connectionState, .connecting)
+        viewModel.connectionState = .connected
+        XCTAssertEqual(viewModel.connectionState, .connected)
+        viewModel.isLoading = true
+        XCTAssertTrue(viewModel.isLoading)
+        viewModel.pendingApproval = makeApprovalRequest()
+        XCTAssertEqual(viewModel.connectionState, .showingApproval)
+        XCTAssertNotNil(viewModel.pendingApproval)
+        viewModel.connectionState = .reconnecting
+        XCTAssertEqual(viewModel.connectionState, .reconnecting)
+    }
+}
+
 func makeAgentInfoEnvelope() -> Mrt_Envelope {
     var envelope = Mrt_Envelope()
     envelope.event = .with { event in
@@ -102,14 +138,18 @@ func makeCodexOutput(content: String, complete: Bool) -> Mrt_Envelope {
 func makeApprovalRequestEnvelope() -> Mrt_Envelope {
     var envelope = Mrt_Envelope()
     envelope.event = .with { event in
-        event.approvalRequest = .with { request in
-            request.approvalID = "approval-1"
-            request.sessionID = "session-1"
-            request.description_p = "Write to file src/main.rs"
-            request.command = "echo hi"
-        }
+        event.approvalRequest = makeApprovalRequest()
     }
     return envelope
+}
+
+func makeApprovalRequest() -> Mrt_ApprovalRequest {
+    .with { request in
+        request.approvalID = "approval-1"
+        request.sessionID = "session-1"
+        request.description_p = "Write to file src/main.rs"
+        request.command = "echo hi"
+    }
 }
 
 func makeSessionListEnvelope() -> Mrt_Envelope {
