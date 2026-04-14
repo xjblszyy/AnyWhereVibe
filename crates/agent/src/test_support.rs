@@ -13,7 +13,7 @@ use proto_gen::{
 };
 use tempfile::TempDir;
 use tokio::sync::{oneshot, Mutex};
-use tokio::time::{sleep, timeout, Duration};
+use tokio::time::{timeout, Duration};
 use tokio_tungstenite::connect_async;
 use tokio_tungstenite::tungstenite::Message;
 use tokio_tungstenite::{MaybeTlsStream, WebSocketStream};
@@ -70,7 +70,7 @@ pub async fn spawn_mock_server() -> SpawnedServer {
     let task = tokio::spawn(async move { server.run(shutdown_rx).await });
 
     SpawnedServer {
-        ws_url: format!("ws://{local_addr}/"),
+        ws_url: format!("ws://127.0.0.1:{}/", local_addr.port()),
         shutdown_tx: Some(shutdown_tx),
         task: Some(task),
         _temp_dir: temp_dir,
@@ -235,7 +235,6 @@ impl TestClient {
     }
 
     pub async fn send_prompt_expect_error(&mut self, session_id: &str, prompt: &str) -> ErrorEvent {
-        sleep(Duration::from_millis(10)).await;
         self.send_prompt(session_id, prompt).await;
         self.expect_error().await
     }

@@ -362,7 +362,21 @@ async fn route_command(
                 return Ok(());
             }
 
+            {
+                let mut sessions = state.sessions.lock().await;
+                let _ = sessions.update_status(&session_id, TaskStatus::Running);
+                let session_list = sessions.list();
+                drop(sessions);
+                broadcast_session_list(state, session_list);
+            }
+
             if let Err(error) = state.adapter.send_prompt(&session_id, &prompt).await {
+                let mut sessions = state.sessions.lock().await;
+                let _ = sessions.update_status(&session_id, TaskStatus::Idle);
+                let session_list = sessions.list();
+                drop(sessions);
+                broadcast_session_list(state, session_list);
+
                 send_error(
                     write,
                     &request_id,
