@@ -40,7 +40,7 @@ Example config:
 
 ```toml
 [server]
-listen_addr = "0.0.0.0:443"
+listen_addr = "0.0.0.0:8443"
 mode = "self-hosted"
 
 [storage]
@@ -49,6 +49,25 @@ path = "/var/lib/mrt/mrt-node.db"
 
 [log]
 level = "info"
+```
+
+Install this config at the path expected by the systemd unit:
+
+```bash
+sudo install -d -m 0755 /etc/mrt /var/lib/mrt
+sudo tee /etc/mrt/connection-node.toml >/dev/null <<'EOF'
+[server]
+listen_addr = "0.0.0.0:8443"
+mode = "self-hosted"
+
+[storage]
+type = "sqlite"
+path = "/var/lib/mrt/mrt-node.db"
+
+[log]
+level = "info"
+EOF
+sudo chmod 0644 /etc/mrt/connection-node.toml
 ```
 
 ## Create App Users and Tokens
@@ -76,7 +95,7 @@ Create host config/data directories:
 sudo mkdir -p /opt/mrt/config /opt/mrt/data
 sudo tee /opt/mrt/config/connection-node.toml >/dev/null <<'EOF'
 [server]
-listen_addr = "0.0.0.0:443"
+listen_addr = "0.0.0.0:8443"
 mode = "self-hosted"
 
 [storage]
@@ -94,17 +113,22 @@ Run container:
 docker run -d \
   --name mrt-connection-node \
   --restart unless-stopped \
-  --cap-add NET_BIND_SERVICE \
-  -p 443:443 \
+  --cap-drop ALL \
+  --security-opt no-new-privileges:true \
+  -p 8443:8443 \
   -v /opt/mrt/config:/etc/mrt \
   -v /opt/mrt/data:/var/lib/mrt \
   mrt-connection-node
 ```
 
+`--cap-drop ALL` is sufficient for the default `8443` listener. Only add
+`--cap-add NET_BIND_SERVICE` if you intentionally bind a privileged port (for example `443`) inside the container.
+
 Why this Dockerfile uses `debian:bookworm-slim` instead of `scratch`:
 
 - The current crate build is not guaranteed to produce a fully static binary in every environment.
 - Runtime SQLite and CA cert assets are easier to keep reliable with a minimal distro base.
+- With the default `8443` listener, no Linux capabilities are required in the container.
 
 ## Run with systemd
 
@@ -113,6 +137,19 @@ Install binary, config, and service on Linux host:
 ```bash
 sudo useradd --system --home /var/lib/mrt --create-home --shell /usr/sbin/nologin mrt || true
 sudo install -d -m 0755 -o mrt -g mrt /etc/mrt /var/lib/mrt
+sudo tee /etc/mrt/connection-node.toml >/dev/null <<'EOF'
+[server]
+listen_addr = "0.0.0.0:8443"
+mode = "self-hosted"
+
+[storage]
+type = "sqlite"
+path = "/var/lib/mrt/mrt-node.db"
+
+[log]
+level = "info"
+EOF
+sudo chmod 0644 /etc/mrt/connection-node.toml
 sudo install -m 0755 ./target/release/connection-node /usr/local/bin/connection-node
 sudo install -m 0644 ./deploy/connection-node.service /etc/systemd/system/connection-node.service
 ```
@@ -130,7 +167,7 @@ sudo systemctl status connection-node --no-pager
 Local check:
 
 ```bash
-curl -fsS http://127.0.0.1:443/health
+curl -fsS http://127.0.0.1:8443/health
 ```
 
 Expected response body:
@@ -143,4 +180,5 @@ ok
 
 - Self-hosted mode is the only production path currently.
 - TLS auto-provisioning is not implemented yet (`rustls-acme` is future work).
-- If you need TLS today, terminate TLS with a reverse proxy/LB (for example Caddy/Nginx/HAProxy) in front of `connection-node`.
+- Default examples intentionally run plaintext on `8443` only.
+- If you need external `443`/`wss`, terminate TLS with a reverse proxy/LB (for example Caddy/Nginx/HAProxy) in front of `connection-node` and proxy to `127.0.0.1:8443`.

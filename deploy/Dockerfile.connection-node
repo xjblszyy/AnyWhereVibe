@@ -20,7 +20,7 @@ RUN install -d -m 0755 -o mrt -g mrt /etc/mrt /var/lib/mrt
 
 COPY --from=builder /src/target/release/connection-node /usr/local/bin/connection-node
 
-EXPOSE 443
+EXPOSE 8443
 VOLUME ["/etc/mrt", "/var/lib/mrt"]
 
 USER mrt:mrt
