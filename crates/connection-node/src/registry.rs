@@ -124,6 +124,24 @@ impl DeviceRegistry {
             .cloned()
     }
 
+    pub async fn find_unique_device(&self, device_id: &str) -> Result<OnlineDevice> {
+        let online = self.online.read().await;
+        let mut matches = online
+            .values()
+            .filter(|device| device.device_id == device_id)
+            .cloned();
+
+        let first = matches
+            .next()
+            .ok_or_else(|| anyhow!("device '{device_id}' is not online"))?;
+
+        if matches.next().is_some() {
+            return Err(anyhow!("device '{device_id}' is ambiguous across users"));
+        }
+
+        Ok(first)
+    }
+
     pub async fn get_sender_for_user(
         &self,
         requester_user_id: i64,
