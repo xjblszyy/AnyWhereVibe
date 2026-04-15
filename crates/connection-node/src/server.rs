@@ -188,7 +188,11 @@ async fn handle_ws(socket: WebSocket, state: AppState) {
                         Some(Payload::ConnectToDevice(request)) => {
                             let ack = match state
                                 .router
-                                .connect(&register_device_id, &request.target_device_id)
+                                .connect_for_user(
+                                    user_id,
+                                    &register_device_id,
+                                    &request.target_device_id,
+                                )
                                 .await
                             {
                                 Ok(ack) => ack,
@@ -214,7 +218,7 @@ async fn handle_ws(socket: WebSocket, state: AppState) {
 
                 if state
                     .router
-                    .route(&register_device_id, bytes.to_vec())
+                    .route_for_user(user_id, &register_device_id, bytes.to_vec())
                     .await
                     .is_err()
                 {
@@ -227,7 +231,10 @@ async fn handle_ws(socket: WebSocket, state: AppState) {
         }
     }
 
-    state.router.disconnect(&register_device_id).await;
+    state
+        .router
+        .disconnect_device(user_id, &register_device_id)
+        .await;
     let _ = state
         .registry
         .unregister(user_id, &register_device_id)

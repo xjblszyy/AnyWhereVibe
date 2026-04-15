@@ -209,6 +209,138 @@ async fn connect_to_device_and_binary_frame_reaches_paired_side() {
     }
 }
 
+#[tokio::test]
+async fn connect_to_device_uses_requester_user_scope_when_device_ids_overlap() {
+    let (_db, _registry, _router, _task, ws_url) = spawn_test_server().await;
+
+    let (mut phone, _) = connect_async(&ws_url).await.expect("connect phone");
+    register_device(
+        &mut phone,
+        DeviceRegister {
+            device_id: "shared-phone".into(),
+            auth_token: "mrt_ak_alice1234567890abcd".into(),
+            device_type: DeviceType::Phone as i32,
+            display_name: "Alice Phone".into(),
+            agent_version: "1.0.0".into(),
+        },
+    )
+    .await;
+
+    let (mut alice_agent, _) = connect_async(&ws_url).await.expect("connect alice agent");
+    register_device(
+        &mut alice_agent,
+        DeviceRegister {
+            device_id: "shared-agent".into(),
+            auth_token: "mrt_ak_alice1234567890abcd".into(),
+            device_type: DeviceType::Agent as i32,
+            display_name: "Alice Agent".into(),
+            agent_version: "1.0.0".into(),
+        },
+    )
+    .await;
+
+    let (mut bob_agent, _) = connect_async(&ws_url).await.expect("connect bob agent");
+    register_device(
+        &mut bob_agent,
+        DeviceRegister {
+            device_id: "shared-agent".into(),
+            auth_token: "mrt_ak_bob1234567890abcdef".into(),
+            device_type: DeviceType::Agent as i32,
+            display_name: "Bob Agent".into(),
+            agent_version: "1.0.0".into(),
+        },
+    )
+    .await;
+
+    send_envelope(
+        &mut phone,
+        Envelope {
+            protocol_version: 1,
+            request_id: "req-connect-overlap".into(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::ConnectToDevice(ConnectToDevice {
+                target_device_id: "shared-agent".into(),
+            })),
+        },
+    )
+    .await;
+
+    let ack = recv_connect_ack(&mut phone).await;
+    assert!(ack.success, "connect failed: {}", ack.message);
+
+    phone
+        .send(Message::Binary(vec![7, 7, 7].into()))
+        .await
+        .expect("send binary");
+
+    let alice_frame = timeout(Duration::from_secs(1), alice_agent.next())
+        .await
+        .expect("alice recv timeout")
+        .expect("alice frame")
+        .expect("alice ws ok");
+    match alice_frame {
+        Message::Binary(bytes) => assert_eq!(bytes.to_vec(), vec![7, 7, 7]),
+        other => panic!("expected alice binary relay frame, got {other:?}"),
+    }
+
+    let bob_frame = timeout(Duration::from_millis(200), bob_agent.next()).await;
+    assert!(
+        bob_frame.is_err(),
+        "bob agent unexpectedly received a frame"
+    );
+}
+
+#[tokio::test]
+async fn disconnecting_either_side_cleans_up_relay_session() {
+    let (_db, _registry, router, _task, ws_url) = spawn_test_server().await;
+
+    let (mut phone, _) = connect_async(&ws_url).await.expect("connect phone");
+    register_device(
+        &mut phone,
+        DeviceRegister {
+            device_id: "alice-phone".into(),
+            auth_token: "mrt_ak_alice1234567890abcd".into(),
+            device_type: DeviceType::Phone as i32,
+            display_name: "Alice Phone".into(),
+            agent_version: "1.0.0".into(),
+        },
+    )
+    .await;
+
+    let (mut agent, _) = connect_async(&ws_url).await.expect("connect agent");
+    register_device(
+        &mut agent,
+        DeviceRegister {
+            device_id: "alice-agent".into(),
+            auth_token: "mrt_ak_alice1234567890abcd".into(),
+            device_type: DeviceType::Agent as i32,
+            display_name: "Alice Agent".into(),
+            agent_version: "1.0.0".into(),
+        },
+    )
+    .await;
+
+    send_envelope(
+        &mut phone,
+        Envelope {
+            protocol_version: 1,
+            request_id: "req-connect-cleanup".into(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::ConnectToDevice(ConnectToDevice {
+                target_device_id: "alice-agent".into(),
+            })),
+        },
+    )
+    .await;
+    let ack = recv_connect_ack(&mut phone).await;
+    assert!(ack.success);
+    assert!(router.session_for_phone("alice-phone").await.is_some());
+
+    agent.close(None).await.expect("close agent");
+
+    wait_for_session_cleanup(&router, "alice-phone").await;
+}
+
 async fn spawn_test_server() -> (
     Arc<Database>,
     Arc<DeviceRegistry>,
@@ -351,4 +483,15 @@ fn now_ms() -> u64 {
         .duration_since(UNIX_EPOCH)
         .expect("time")
         .as_millis() as u64
+}
+
+async fn wait_for_session_cleanup(router: &Arc<SessionRouter>, phone_id: &str) {
+    for _ in 0..50 {
+        if router.session_for_phone(phone_id).await.is_none() {
+            return;
+        }
+        tokio::time::sleep(Duration::from_millis(20)).await;
+    }
+
+    panic!("session for {phone_id} was not cleaned up");
 }

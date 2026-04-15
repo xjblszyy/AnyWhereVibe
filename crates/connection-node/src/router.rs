@@ -12,7 +12,7 @@ use crate::relay::RelayEngine;
 
 pub struct SessionRouter {
     registry: Arc<DeviceRegistry>,
-    sessions: RwLock<HashMap<String, RelaySession>>,
+    sessions: RwLock<HashMap<SessionKey, RelaySession>>,
 }
 
 struct RelaySession {
@@ -31,6 +31,12 @@ pub struct SessionSnapshot {
     pub bytes_forwarded: u64,
 }
 
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct SessionKey {
+    user_id: i64,
+    phone_device_id: String,
+}
+
 impl SessionRouter {
     pub fn new(registry: Arc<DeviceRegistry>) -> Self {
         Self {
@@ -45,11 +51,26 @@ impl SessionRouter {
         target_agent_id: &str,
     ) -> Result<ConnectToDeviceAck> {
         let phone = self.registry.find_unique_device(phone_id).await?;
-        let agent = self.registry.find_unique_device(target_agent_id).await?;
+        self.connect_for_user(phone.user_id, phone_id, target_agent_id)
+            .await
+    }
 
-        if phone.user_id != agent.user_id {
-            return Err(anyhow!("devices must belong to the same user"));
-        }
+    pub async fn connect_for_user(
+        &self,
+        requester_user_id: i64,
+        phone_id: &str,
+        target_agent_id: &str,
+    ) -> Result<ConnectToDeviceAck> {
+        let phone = self
+            .registry
+            .find_device(requester_user_id, phone_id)
+            .await
+            .ok_or_else(|| anyhow!("phone device '{phone_id}' is not online"))?;
+        let agent = self
+            .registry
+            .find_device(requester_user_id, target_agent_id)
+            .await
+            .ok_or_else(|| anyhow!("target device must belong to the same user and be online"))?;
 
         if agent.device_type != DeviceType::Agent {
             return Err(anyhow!("target device must be an online agent"));
@@ -63,7 +84,10 @@ impl SessionRouter {
             bytes_forwarded: AtomicU64::new(0),
         };
 
-        self.sessions.write().await.insert(phone.device_id, session);
+        self.sessions.write().await.insert(
+            SessionKey::new(requester_user_id, &phone.device_id),
+            session,
+        );
 
         Ok(ConnectToDeviceAck {
             success: true,
@@ -73,29 +97,49 @@ impl SessionRouter {
     }
 
     pub async fn disconnect(&self, phone_id: &str) {
-        self.sessions.write().await.remove(phone_id);
+        self.sessions
+            .write()
+            .await
+            .retain(|_, session| session.phone_device_id != phone_id);
+    }
+
+    pub async fn disconnect_device(&self, user_id: i64, device_id: &str) {
+        self.sessions.write().await.retain(|_, session| {
+            !(session.user_id == user_id
+                && (session.phone_device_id == device_id || session.agent_device_id == device_id))
+        });
     }
 
     pub async fn route(&self, from_device_id: &str, frame: Vec<u8>) -> Result<()> {
         let from_device = self.registry.find_unique_device(from_device_id).await?;
+        self.route_for_user(from_device.user_id, from_device_id, frame)
+            .await
+    }
+
+    pub async fn route_for_user(
+        &self,
+        user_id: i64,
+        from_device_id: &str,
+        frame: Vec<u8>,
+    ) -> Result<()> {
         let frame_len = frame.len() as u64;
 
         let (target_device_id, user_id, phone_key) = {
             let sessions = self.sessions.read().await;
 
-            if let Some(session) = sessions.get(from_device_id) {
+            if let Some(session) = sessions.get(&SessionKey::new(user_id, from_device_id)) {
                 (
                     session.agent_device_id.clone(),
                     session.user_id,
-                    session.phone_device_id.clone(),
+                    SessionKey::new(session.user_id, &session.phone_device_id),
                 )
             } else if let Some(session) = sessions.values().find(|session| {
-                session.user_id == from_device.user_id && session.agent_device_id == from_device_id
+                session.user_id == user_id && session.agent_device_id == from_device_id
             }) {
                 (
                     session.phone_device_id.clone(),
                     session.user_id,
-                    session.phone_device_id.clone(),
+                    SessionKey::new(session.user_id, &session.phone_device_id),
                 )
             } else {
                 return Err(anyhow!(
@@ -122,14 +166,28 @@ impl SessionRouter {
     }
 
     pub async fn session_for_phone(&self, phone_id: &str) -> Option<SessionSnapshot> {
-        self.sessions.read().await.get(phone_id).map(|session| {
-            let _ = session.created_at;
-            SessionSnapshot {
-                phone_device_id: session.phone_device_id.clone(),
-                agent_device_id: session.agent_device_id.clone(),
-                user_id: session.user_id,
-                bytes_forwarded: session.bytes_forwarded.load(Ordering::Relaxed),
-            }
-        })
+        self.sessions
+            .read()
+            .await
+            .values()
+            .find(|session| session.phone_device_id == phone_id)
+            .map(|session| {
+                let _ = session.created_at;
+                SessionSnapshot {
+                    phone_device_id: session.phone_device_id.clone(),
+                    agent_device_id: session.agent_device_id.clone(),
+                    user_id: session.user_id,
+                    bytes_forwarded: session.bytes_forwarded.load(Ordering::Relaxed),
+                }
+            })
+    }
+}
+
+impl SessionKey {
+    fn new(user_id: i64, phone_device_id: &str) -> Self {
+        Self {
+            user_id,
+            phone_device_id: phone_device_id.to_string(),
+        }
     }
 }
