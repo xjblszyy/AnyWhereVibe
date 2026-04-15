@@ -48,6 +48,15 @@ final class ConnectionManager: ConnectionManaging {
     private let heartbeatInterval: TimeInterval
     private let timeoutInterval: TimeInterval
     private let dispatcher = MessageDispatcher()
+    private enum TransportMode {
+        case direct
+        case managed
+    }
+    private struct NodeRegistration {
+        let authToken: String
+        let deviceID: String
+        let displayName: String
+    }
 
     private(set) var state: ConnectionState = .disconnected {
         didSet { onStateChange?(state) }
@@ -60,6 +69,9 @@ final class ConnectionManager: ConnectionManaging {
     }
     private(set) var sessions: [SessionModel] = [] {
         didSet { onSessionsChange?(sessions) }
+    }
+    private(set) var devices: [Mrt_DeviceInfo] = [] {
+        didSet { onDevicesChange?(devices) }
     }
 
     var onStateChange: ((ConnectionState) -> Void)? {
@@ -74,14 +86,21 @@ final class ConnectionManager: ConnectionManaging {
     var onSessionsChange: (([SessionModel]) -> Void)? {
         didSet { onSessionsChange?(sessions) }
     }
+    var onDevicesChange: (([Mrt_DeviceInfo]) -> Void)? {
+        didSet { onDevicesChange?(devices) }
+    }
 
     private var heartbeatTask: Task<Void, Never>?
     private var timeoutTask: Task<Void, Never>?
     private var reconnectTask: Task<Void, Never>?
     private var handshakeSucceeded = false
+    private var nodeRegistrationSucceeded = false
     private var lastInboundMessageAt: Date?
     private var endpointURL: URL?
     private var connectionAttemptID = UUID()
+    private var transportMode: TransportMode = .direct
+    private var nodeRegistration: NodeRegistration?
+    private var pendingTargetDeviceID: String?
 
     init(
         socket: WebSocketClientProtocol = WebSocketClient(),
@@ -103,6 +122,9 @@ final class ConnectionManager: ConnectionManaging {
             throw ConnectionManagerError.invalidEndpoint
         }
         endpointURL = url
+        transportMode = .direct
+        nodeRegistration = nil
+        pendingTargetDeviceID = nil
         connectionAttemptID = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
@@ -115,8 +137,48 @@ final class ConnectionManager: ConnectionManaging {
         }
     }
 
+    func connectManaged(
+        nodeURL: String,
+        authToken: String,
+        deviceID: String,
+        displayName: String,
+        targetDeviceID: String? = nil
+    ) async throws {
+        let trimmedURL = nodeURL.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard let url = URL(string: trimmedURL), ["ws", "wss"].contains(url.scheme?.lowercased()) else {
+            throw ConnectionManagerError.invalidEndpoint
+        }
+
+        endpointURL = url
+        transportMode = .managed
+        nodeRegistration = NodeRegistration(
+            authToken: authToken.trimmingCharacters(in: .whitespacesAndNewlines),
+            deviceID: deviceID.trimmingCharacters(in: .whitespacesAndNewlines),
+            displayName: displayName.trimmingCharacters(in: .whitespacesAndNewlines)
+        )
+        pendingTargetDeviceID = targetDeviceID
+        connectionAttemptID = UUID()
+        reconnectTask?.cancel()
+        reconnectTask = nil
+
+        do {
+            try await establishManagedConnection(
+                to: url,
+                registration: nodeRegistration!,
+                connectionState: .connecting,
+                attemptID: connectionAttemptID
+            )
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            transitionToReconnecting()
+        }
+    }
+
     func disconnect() {
         endpointURL = nil
+        nodeRegistration = nil
+        pendingTargetDeviceID = nil
         connectionAttemptID = UUID()
         reconnectTask?.cancel()
         reconnectTask = nil
@@ -206,6 +268,28 @@ final class ConnectionManager: ConnectionManaging {
         })
     }
 
+    func requestDeviceList() async throws {
+        guard nodeRegistrationSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.deviceListRequest = Mrt_DeviceListRequest()
+        })
+    }
+
+    func connectToDevice(targetDeviceID: String) async throws {
+        guard nodeRegistrationSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.connectToDevice = .with { request in
+                request.targetDeviceID = targetDeviceID
+            }
+        })
+    }
+
     private func handleIncomingData(_ data: Data, attemptID: UUID) {
         synchronizeOnMain {
             guard attemptID == self.connectionAttemptID else {
@@ -222,38 +306,59 @@ final class ConnectionManager: ConnectionManaging {
 
             self.lastInboundMessageAt = Date()
 
-            guard case .event(let event)? = envelope.payload else {
-                return
-            }
-
-            switch event.evt {
-            case .agentInfo:
-                guard attemptID == self.connectionAttemptID else { return }
-                guard !self.handshakeSucceeded else { return }
-                self.handshakeSucceeded = true
-                self.state = .connected
-                self.lastInboundMessageAt = Date()
-                self.startHeartbeatLoop()
-                self.startInboundTimeoutLoop(attemptID: attemptID)
-            case .approvalRequest:
-                self.state = .showingApproval
-            case .statusUpdate(let update):
-                switch update.status {
-                case .running:
-                    self.state = .loading
-                case .waitingApproval:
-                    self.state = .showingApproval
-                case .completed, .cancelled, .error, .idle:
+            switch envelope.payload {
+            case .event(let event):
+                switch event.evt {
+                case .agentInfo:
+                    guard attemptID == self.connectionAttemptID else { return }
+                    guard !self.handshakeSucceeded else { return }
+                    self.handshakeSucceeded = true
                     self.state = .connected
-                case .unspecified, .UNRECOGNIZED:
+                    self.lastInboundMessageAt = Date()
+                    self.startHeartbeatLoop()
+                    self.startInboundTimeoutLoop(attemptID: attemptID)
+                case .approvalRequest:
+                    self.state = .showingApproval
+                case .statusUpdate(let update):
+                    switch update.status {
+                    case .running:
+                        self.state = .loading
+                    case .waitingApproval:
+                        self.state = .showingApproval
+                    case .completed, .cancelled, .error, .idle:
+                        self.state = .connected
+                    case .unspecified, .UNRECOGNIZED:
+                        break
+                    }
+                case .error(let error):
+                    if error.fatal {
+                        self.transitionToReconnecting()
+                    }
+                case .codexOutput, .sessionList, .none:
                     break
                 }
-            case .error(let error):
-                if error.fatal {
-                    self.transitionToReconnecting()
+            case .deviceRegisterAck(let ack):
+                self.nodeRegistrationSucceeded = ack.success
+                if ack.success, let pendingTargetDeviceID = self.pendingTargetDeviceID {
+                    self.state = .connecting
+                    Task { try? await self.connectToDevice(targetDeviceID: pendingTargetDeviceID) }
+                } else {
+                    self.state = ack.success ? .connected : .disconnected
                 }
-            case .codexOutput, .sessionList, .none:
-                break
+            case .deviceListResponse(let response):
+                self.devices = response.devices
+            case .connectToDeviceAck(let ack):
+                if ack.success {
+                    self.state = .connecting
+                    Task {
+                        try? await self.sendEnvelope(self.makeHandshakeEnvelope())
+                    }
+                    self.startHandshakeTimeoutLoop(attemptID: attemptID)
+                } else {
+                    self.state = .connected
+                }
+            default:
+                return
             }
 
             self.dispatcher.apply(envelope)
@@ -272,6 +377,31 @@ final class ConnectionManager: ConnectionManaging {
         try ensureActiveAttempt(attemptID)
         try await sendEnvelope(makeHandshakeEnvelope())
         startHandshakeTimeoutLoop(attemptID: attemptID)
+    }
+
+    private func establishManagedConnection(
+        to url: URL,
+        registration: NodeRegistration,
+        connectionState: ConnectionState,
+        attemptID: UUID
+    ) async throws {
+        try ensureActiveAttempt(attemptID)
+        teardownSocket()
+        try ensureActiveAttempt(attemptID)
+        configureSocketCallbacks(attemptID: attemptID)
+        state = connectionState
+        try ensureActiveAttempt(attemptID)
+        try await socket.connect(url: url)
+        try ensureActiveAttempt(attemptID)
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.deviceRegister = .with { register in
+                register.deviceID = registration.deviceID
+                register.authToken = registration.authToken
+                register.deviceType = .phone
+                register.displayName = registration.displayName
+                register.agentVersion = "1.0.0"
+            }
+        })
     }
 
     private func configureSocketCallbacks(attemptID: UUID) {
@@ -410,7 +540,18 @@ final class ConnectionManager: ConnectionManaging {
 
                 do {
                     try self.ensureActiveAttempt(attemptID)
-                    try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
+                    switch self.transportMode {
+                    case .direct:
+                        try await self.establishConnection(to: endpointURL, connectionState: .reconnecting, attemptID: attemptID)
+                    case .managed:
+                        guard let registration = self.nodeRegistration else { return }
+                        try await self.establishManagedConnection(
+                            to: endpointURL,
+                            registration: registration,
+                            connectionState: .reconnecting,
+                            attemptID: attemptID
+                        )
+                    }
                 } catch is CancellationError {
                 } catch {
                     shouldRetry = true
@@ -433,6 +574,7 @@ final class ConnectionManager: ConnectionManaging {
         heartbeatTask = nil
         timeoutTask = nil
         handshakeSucceeded = false
+        nodeRegistrationSucceeded = false
         lastInboundMessageAt = nil
 
         socket.onReceive = nil

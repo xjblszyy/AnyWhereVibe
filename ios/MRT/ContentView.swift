@@ -29,6 +29,7 @@ struct ContentView: View {
     @StateObject private var sessionViewModel: SessionViewModel
     @StateObject private var phoneWatchBridge: PhoneWatchBridge
     @StateObject private var preferences: Preferences
+    private let concreteConnectionManager: ConnectionManager?
 
     init(
         connectionManager: ConnectionManaging = ConnectionManager(),
@@ -40,6 +41,7 @@ struct ContentView: View {
         _preferences = StateObject(wrappedValue: preferences)
         _sessionViewModel = StateObject(wrappedValue: sessionViewModel)
         _chatViewModel = StateObject(wrappedValue: chatViewModel)
+        self.concreteConnectionManager = connectionManager as? ConnectionManager
         _phoneWatchBridge = StateObject(
             wrappedValue: PhoneWatchBridge(
                 approvalResponder: { approvalID, approved in
@@ -78,7 +80,7 @@ struct ContentView: View {
                 case .files:
                     FilesPlaceholderView()
                 case .settings:
-                    SettingsView(preferences: preferences)
+                    SettingsView(preferences: preferences, connectionManager: concreteConnectionManager)
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -107,11 +109,25 @@ struct ContentView: View {
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
                 return
             }
-            await chatViewModel.connectIfNeeded(
-                host: preferences.directHost,
-                port: preferences.directPort,
-                mode: preferences.connectionMode
-            )
+            if preferences.connectionMode == .managed,
+               let connectionManager = concreteConnectionManager,
+               !preferences.nodeURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               !preferences.authToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+               !preferences.managedTargetDeviceID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+                try? await connectionManager.connectManaged(
+                    nodeURL: preferences.nodeURL,
+                    authToken: preferences.authToken,
+                    deviceID: managedPhoneDeviceID(),
+                    displayName: UIDevice.current.name,
+                    targetDeviceID: preferences.managedTargetDeviceID
+                )
+            } else {
+                await chatViewModel.connectIfNeeded(
+                    host: preferences.directHost,
+                    port: preferences.directPort,
+                    mode: preferences.connectionMode
+                )
+            }
         }
     }
 
@@ -157,6 +173,10 @@ struct ContentView: View {
             lastSummary: lastWatchSummary,
             pendingApproval: chatViewModel.pendingApproval
         )
+    }
+
+    private func managedPhoneDeviceID() -> String {
+        UIDevice.current.identifierForVendor?.uuidString ?? "ios-phone"
     }
 }
 

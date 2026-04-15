@@ -29,6 +29,19 @@ final class ChatViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testConnectIfNeededLeavesManagedModeToDedicatedNodeFlow() async {
+        let connection = StubConnectionManager()
+        let viewModel = ChatViewModel(connectionManager: connection)
+
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .direct)
+        await viewModel.connectIfNeeded(host: "127.0.0.1", port: 9876, mode: .managed)
+
+        XCTAssertEqual(connection.connectCalls.map(\.host), ["127.0.0.1"])
+        XCTAssertEqual(connection.disconnectCallCount, 0)
+        XCTAssertEqual(viewModel.connectionState, .connected)
+    }
+
+    @MainActor
     func testSwitchingSessionsChangesVisibleThreadButKeepsGlobalSystemMessages() async {
         let connection = StubConnectionManager()
         let viewModel = ChatViewModel(connectionManager: connection)

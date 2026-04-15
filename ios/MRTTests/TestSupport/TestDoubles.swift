@@ -80,6 +80,7 @@ final class StubConnectionManager: ConnectionManaging {
     var connectCalls: [(host: String, port: Int)] = []
     var connectError: Error?
     var connectStateAfterConnect: ConnectionState?
+    var disconnectCallCount = 0
 
     func connect(host: String, port: Int) async throws {
         connectCalls.append((host: host, port: port))
@@ -91,6 +92,7 @@ final class StubConnectionManager: ConnectionManaging {
     }
 
     func disconnect() {
+        disconnectCallCount += 1
         state = .disconnected
         onStateChange?(state)
     }
@@ -184,6 +186,40 @@ func makeSessionListEnvelope() -> Mrt_Envelope {
                 }
             ]
         }
+    }
+    return envelope
+}
+
+func makeDeviceRegisterAckEnvelope(success: Bool) -> Mrt_Envelope {
+    var envelope = Mrt_Envelope()
+    envelope.deviceRegisterAck = .with { ack in
+        ack.success = success
+        ack.message = success ? "registered" : "invalid auth token"
+    }
+    return envelope
+}
+
+func makeDeviceListResponseEnvelope() -> Mrt_Envelope {
+    var envelope = Mrt_Envelope()
+    envelope.deviceListResponse = .with { response in
+        response.devices = [
+            .with { device in
+                device.deviceID = "agent-1"
+                device.deviceType = .agent
+                device.displayName = "Office Mac"
+                device.isOnline = true
+            }
+        ]
+    }
+    return envelope
+}
+
+func makeConnectToDeviceAckEnvelope(success: Bool) -> Mrt_Envelope {
+    var envelope = Mrt_Envelope()
+    envelope.connectToDeviceAck = .with { ack in
+        ack.success = success
+        ack.message = success ? "connected" : "device unavailable"
+        ack.connectionType = .relay
     }
     return envelope
 }

@@ -76,4 +76,25 @@ final class PreferencesTests: XCTestCase {
         XCTAssertEqual(preferences.directPort, 9876)
         XCTAssertEqual(preferences.connectionMode, .direct)
     }
+
+    func testPreferencesStoreManagedFieldsAndSignature() {
+        let defaults = UserDefaults(suiteName: #function)!
+        defaults.removePersistentDomain(forName: #function)
+        let preferences = Preferences(userDefaults: defaults)
+
+        preferences.connectionMode = .managed
+        preferences.nodeURL = "wss://relay.example.com/ws"
+        preferences.authToken = "mrt_ak_example1234567890"
+        preferences.managedTargetDeviceID = "agent-1"
+        preferences.managedTargetDeviceName = "Office Mac"
+
+        XCTAssertEqual(preferences.nodeURL, "wss://relay.example.com/ws")
+        XCTAssertEqual(preferences.authToken, "mrt_ak_example1234567890")
+        XCTAssertEqual(preferences.managedTargetDeviceID, "agent-1")
+        XCTAssertEqual(preferences.managedTargetDeviceName, "Office Mac")
+        XCTAssertEqual(
+            preferences.connectionConfigurationSignature,
+            "managed|127.0.0.1|9876|wss://relay.example.com/ws|mrt_ak_example1234567890|agent-1|Office Mac"
+        )
+    }
 }

@@ -312,6 +312,88 @@ final class ConnectionManagerTests: XCTestCase {
             XCTFail("Expected create session envelope")
         }
     }
+
+    func testConnectionManagerRegistersPhoneInManagedMode() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connectManaged(
+            nodeURL: "ws://relay.example.com/ws",
+            authToken: "mrt_ak_example1234567890",
+            deviceID: "iphone-1",
+            displayName: "iPhone 1"
+        )
+
+        XCTAssertEqual(socket.connectedURL?.absoluteString, "ws://relay.example.com/ws")
+        let registerEnvelope = try ProtobufCodec.decode(socket.sentData[0])
+        if case .deviceRegister = registerEnvelope.payload {
+        } else {
+            XCTFail("Expected device register envelope")
+        }
+
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success: true))
+
+        XCTAssertEqual(manager.state, .connected)
+    }
+
+    func testConnectionManagerPublishesManagedDeviceList() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connectManaged(
+            nodeURL: "ws://relay.example.com/ws",
+            authToken: "mrt_ak_example1234567890",
+            deviceID: "iphone-1",
+            displayName: "iPhone 1"
+        )
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success: true))
+
+        try await manager.requestDeviceList()
+
+        let requestEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        if case .deviceListRequest = requestEnvelope.payload {
+        } else {
+            XCTFail("Expected device list request envelope")
+        }
+
+        socket.pushIncomingEnvelope(makeDeviceListResponseEnvelope())
+
+        XCTAssertEqual(manager.devices.map(\.deviceID), ["agent-1"])
+    }
+
+    func testConnectionManagerConnectToDeviceSendsHandshakeAndTransitionsToAgentConnected() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connectManaged(
+            nodeURL: "ws://relay.example.com/ws",
+            authToken: "mrt_ak_example1234567890",
+            deviceID: "iphone-1",
+            displayName: "iPhone 1"
+        )
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success: true))
+
+        try await manager.connectToDevice(targetDeviceID: "agent-1")
+
+        let connectEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        if case .connectToDevice = connectEnvelope.payload {
+        } else {
+            XCTFail("Expected connect-to-device envelope")
+        }
+
+        socket.pushIncomingEnvelope(makeConnectToDeviceAckEnvelope(success: true))
+        try await Task.sleep(nanoseconds: 10_000_000)
+
+        let handshakeEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        if case .handshake = handshakeEnvelope.payload {
+        } else {
+            XCTFail("Expected handshake envelope")
+        }
+
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        XCTAssertEqual(manager.state, .connected)
+    }
 }
 
 private func XCTAssertThrowsErrorAsync(
