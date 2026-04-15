@@ -35,6 +35,7 @@ interface ConnectionManaging {
     val messages: StateFlow<List<ChatMessage>>
     val pendingApproval: StateFlow<Mrt.ApprovalRequest?>
     val sessions: StateFlow<List<SessionModel>>
+    val fileEnvelopes: StateFlow<Mrt.Envelope?>
     val gitEnvelopes: StateFlow<Mrt.Envelope?>
 
     suspend fun connect(host: String, port: Int)
@@ -45,6 +46,13 @@ interface ConnectionManaging {
     suspend fun switchSession(sessionId: String)
     suspend fun createSession(name: String, workingDirectory: String)
     suspend fun closeSession(sessionId: String)
+    suspend fun listDirectory(sessionId: String, path: String): String
+    suspend fun readFile(sessionId: String, path: String): String
+    suspend fun writeFile(sessionId: String, path: String, content: ByteArray): String
+    suspend fun createFile(sessionId: String, path: String): String
+    suspend fun createDirectory(sessionId: String, path: String): String
+    suspend fun deletePath(sessionId: String, path: String, recursive: Boolean): String
+    suspend fun renamePath(sessionId: String, fromPath: String, toPath: String): String
     suspend fun requestGitStatus(sessionId: String): String
     suspend fun requestGitDiff(sessionId: String, path: String): String
 }
@@ -73,6 +81,9 @@ class ConnectionManager(
 
     private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
     override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
+
+    private val _fileEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+    override val fileEnvelopes: StateFlow<Mrt.Envelope?> = _fileEnvelopes.asStateFlow()
 
     private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
     override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
@@ -278,6 +289,139 @@ class ConnectionManager(
         return envelope.requestId
     }
 
+    override suspend fun listDirectory(sessionId: String, path: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setListDir(
+                        Mrt.ListDir.newBuilder()
+                            .setPath(path)
+                            .setRecursive(false)
+                            .setMaxDepth(0)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun readFile(sessionId: String, path: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setReadFile(
+                        Mrt.ReadFile.newBuilder()
+                            .setPath(path)
+                            .setOffset(0)
+                            .setLength(0)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun writeFile(sessionId: String, path: String, content: ByteArray): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setWriteFile(
+                        Mrt.WriteFile.newBuilder()
+                            .setPath(path)
+                            .setContent(com.google.protobuf.ByteString.copyFrom(content))
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun createFile(sessionId: String, path: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setCreateFile(
+                        Mrt.CreateFile.newBuilder()
+                            .setPath(path)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun createDirectory(sessionId: String, path: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setCreateDir(
+                        Mrt.CreateDir.newBuilder()
+                            .setPath(path)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun deletePath(sessionId: String, path: String, recursive: Boolean): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setDeletePath(
+                        Mrt.DeletePath.newBuilder()
+                            .setPath(path)
+                            .setRecursive(recursive)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun renamePath(sessionId: String, fromPath: String, toPath: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setFileOp(
+                Mrt.FileOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setRenamePath(
+                        Mrt.RenamePath.newBuilder()
+                            .setFromPath(fromPath)
+                            .setToPath(toPath)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
     override suspend fun requestGitDiff(sessionId: String, path: String): String {
         ensureConnected()
         val envelope = makeEnvelope {
@@ -456,6 +600,9 @@ class ConnectionManager(
                     } else {
                         _state.value = ConnectionState.CONNECTED
                     }
+                }
+                Mrt.Envelope.PayloadCase.FILE_RESULT -> {
+                    _fileEnvelopes.value = envelope
                 }
                 Mrt.Envelope.PayloadCase.GIT_RESULT -> {
                     _gitEnvelopes.value = envelope

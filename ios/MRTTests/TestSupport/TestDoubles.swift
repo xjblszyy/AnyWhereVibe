@@ -74,12 +74,20 @@ final class StubConnectionManager: ConnectionManaging {
     var onMessagesChange: (([ChatMessage]) -> Void)?
     var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)?
     var onSessionsChange: (([SessionModel]) -> Void)?
+    var onFileResult: ((Mrt_Envelope) -> Void)?
     var onGitResult: ((Mrt_Envelope) -> Void)?
     var sentPrompts: [(prompt: String, sessionID: String)] = []
     var respondedApprovals: [(approvalID: String, approved: Bool)] = []
     var createdSessions: [(name: String, workingDirectory: String)] = []
     var cancelledSessions: [String] = []
     var closedSessions: [String] = []
+    var listedDirectories: [(sessionID: String, path: String, requestID: String)] = []
+    var readFiles: [(sessionID: String, path: String, requestID: String)] = []
+    var wroteFiles: [(sessionID: String, path: String, content: Data, requestID: String)] = []
+    var createdFiles: [(sessionID: String, path: String, requestID: String)] = []
+    var createdDirectories: [(sessionID: String, path: String, requestID: String)] = []
+    var deletedPaths: [(sessionID: String, path: String, recursive: Bool, requestID: String)] = []
+    var renamedPaths: [(sessionID: String, fromPath: String, toPath: String, requestID: String)] = []
     var requestedGitStatusSessionIDs: [(sessionID: String, requestID: String)] = []
     var requestedGitDiffs: [(sessionID: String, path: String, requestID: String)] = []
     var connectCalls: [(host: String, port: Int)] = []
@@ -123,6 +131,48 @@ final class StubConnectionManager: ConnectionManaging {
 
     func closeSession(id: String) async throws {
         closedSessions.append(id)
+    }
+
+    func listDirectory(sessionID: String, path: String) async throws -> String {
+        let requestID = nextRequestID("file-list")
+        listedDirectories.append((sessionID: sessionID, path: path, requestID: requestID))
+        return requestID
+    }
+
+    func readFile(sessionID: String, path: String) async throws -> String {
+        let requestID = nextRequestID("file-read")
+        readFiles.append((sessionID: sessionID, path: path, requestID: requestID))
+        return requestID
+    }
+
+    func writeFile(sessionID: String, path: String, content: Data) async throws -> String {
+        let requestID = nextRequestID("file-write")
+        wroteFiles.append((sessionID: sessionID, path: path, content: content, requestID: requestID))
+        return requestID
+    }
+
+    func createFile(sessionID: String, path: String) async throws -> String {
+        let requestID = nextRequestID("file-create")
+        createdFiles.append((sessionID: sessionID, path: path, requestID: requestID))
+        return requestID
+    }
+
+    func createDirectory(sessionID: String, path: String) async throws -> String {
+        let requestID = nextRequestID("dir-create")
+        createdDirectories.append((sessionID: sessionID, path: path, requestID: requestID))
+        return requestID
+    }
+
+    func deletePath(sessionID: String, path: String, recursive: Bool) async throws -> String {
+        let requestID = nextRequestID("file-delete")
+        deletedPaths.append((sessionID: sessionID, path: path, recursive: recursive, requestID: requestID))
+        return requestID
+    }
+
+    func renamePath(sessionID: String, fromPath: String, toPath: String) async throws -> String {
+        let requestID = nextRequestID("file-rename")
+        renamedPaths.append((sessionID: sessionID, fromPath: fromPath, toPath: toPath, requestID: requestID))
+        return requestID
     }
 
     func requestGitStatus(sessionID: String) async throws -> String {
@@ -203,6 +253,86 @@ final class StubConnectionManager: ConnectionManaging {
             }
         }
         onGitResult?(envelope)
+    }
+
+    func emitDirListing(sessionID: String, requestID: String, entries: [(name: String, path: String, isDirectory: Bool)]) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.fileResult = .with { result in
+            result.sessionID = sessionID
+            result.dirListing = .with { listing in
+                listing.entries = entries.map { entry in
+                    .with { file in
+                        file.name = entry.name
+                        file.path = entry.path
+                        file.isDir = entry.isDirectory
+                        file.size = entry.isDirectory ? 0 : 128
+                        file.modifiedMs = 1
+                    }
+                }
+            }
+        }
+        onFileResult?(envelope)
+    }
+
+    func emitFileContent(sessionID: String, requestID: String, path: String, content: String, mimeType: String = "text/plain") {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.fileResult = .with { result in
+            result.sessionID = sessionID
+            result.fileContent = .with { file in
+                file.path = path
+                file.content = Data(content.utf8)
+                file.mimeType = mimeType
+            }
+        }
+        onFileResult?(envelope)
+    }
+
+    func emitFileWriteAck(sessionID: String, requestID: String, path: String) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.fileResult = .with { result in
+            result.sessionID = sessionID
+            result.writeAck = .with { ack in
+                ack.path = path
+                ack.success = true
+            }
+        }
+        onFileResult?(envelope)
+    }
+
+    func emitFileMutationAck(sessionID: String, requestID: String, path: String, message: String) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.fileResult = .with { result in
+            result.sessionID = sessionID
+            result.mutationAck = .with { ack in
+                ack.path = path
+                ack.success = true
+                ack.message = message
+            }
+        }
+        onFileResult?(envelope)
+    }
+
+    func emitFileError(sessionID: String, requestID: String, code: String, message: String) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.fileResult = .with { result in
+            result.sessionID = sessionID
+            result.error = .with { error in
+                error.code = code
+                error.message = message
+                error.fatal = false
+            }
+        }
+        onFileResult?(envelope)
+    }
+
+    private func nextRequestID(_ prefix: String) -> String {
+        gitRequestCounter += 1
+        return "\(prefix)-\(gitRequestCounter)"
     }
 }
 

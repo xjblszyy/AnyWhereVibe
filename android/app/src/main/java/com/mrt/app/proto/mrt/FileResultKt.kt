@@ -118,6 +118,30 @@ public object FileResultKt {
     }
 
     /**
+     * `.mrt.FileMutationAck mutation_ack = 5;`
+     */
+    public var mutationAck: mrt.Mrt.FileMutationAck
+      @kotlin.jvm.JvmName("getMutationAck")
+        get() = _builder.mutationAck
+      @kotlin.jvm.JvmName("setMutationAck")
+        set(value) {
+        _builder.mutationAck = value
+      }
+    /**
+     * `.mrt.FileMutationAck mutation_ack = 5;`
+     */
+    public fun clearMutationAck() {
+      _builder.clearMutationAck()
+    }
+    /**
+     * `.mrt.FileMutationAck mutation_ack = 5;`
+     * @return Whether the mutationAck field is set.
+     */
+    public fun hasMutationAck(): kotlin.Boolean {
+      return _builder.hasMutationAck()
+    }
+
+    /**
      * `.mrt.ErrorEvent error = 10;`
      */
     public var error: mrt.Mrt.ErrorEvent
@@ -161,6 +185,9 @@ public val mrt.Mrt.FileResultOrBuilder.fileContentOrNull: mrt.Mrt.FileContent?
 
 public val mrt.Mrt.FileResultOrBuilder.writeAckOrNull: mrt.Mrt.FileWriteAck?
   get() = if (hasWriteAck()) getWriteAck() else null
+
+public val mrt.Mrt.FileResultOrBuilder.mutationAckOrNull: mrt.Mrt.FileMutationAck?
+  get() = if (hasMutationAck()) getMutationAck() else null
 
 public val mrt.Mrt.FileResultOrBuilder.errorOrNull: mrt.Mrt.ErrorEvent?
   get() = if (hasError()) getError() else null

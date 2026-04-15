@@ -124,6 +124,102 @@ public object FileOperationKt {
     public fun hasWriteFile(): kotlin.Boolean {
       return _builder.hasWriteFile()
     }
+
+    /**
+     * `.mrt.CreateFile create_file = 5;`
+     */
+    public var createFile: mrt.Mrt.CreateFile
+      @kotlin.jvm.JvmName("getCreateFile")
+        get() = _builder.createFile
+      @kotlin.jvm.JvmName("setCreateFile")
+        set(value) {
+        _builder.createFile = value
+      }
+    /**
+     * `.mrt.CreateFile create_file = 5;`
+     */
+    public fun clearCreateFile() {
+      _builder.clearCreateFile()
+    }
+    /**
+     * `.mrt.CreateFile create_file = 5;`
+     * @return Whether the createFile field is set.
+     */
+    public fun hasCreateFile(): kotlin.Boolean {
+      return _builder.hasCreateFile()
+    }
+
+    /**
+     * `.mrt.CreateDir create_dir = 6;`
+     */
+    public var createDir: mrt.Mrt.CreateDir
+      @kotlin.jvm.JvmName("getCreateDir")
+        get() = _builder.createDir
+      @kotlin.jvm.JvmName("setCreateDir")
+        set(value) {
+        _builder.createDir = value
+      }
+    /**
+     * `.mrt.CreateDir create_dir = 6;`
+     */
+    public fun clearCreateDir() {
+      _builder.clearCreateDir()
+    }
+    /**
+     * `.mrt.CreateDir create_dir = 6;`
+     * @return Whether the createDir field is set.
+     */
+    public fun hasCreateDir(): kotlin.Boolean {
+      return _builder.hasCreateDir()
+    }
+
+    /**
+     * `.mrt.DeletePath delete_path = 7;`
+     */
+    public var deletePath: mrt.Mrt.DeletePath
+      @kotlin.jvm.JvmName("getDeletePath")
+        get() = _builder.deletePath
+      @kotlin.jvm.JvmName("setDeletePath")
+        set(value) {
+        _builder.deletePath = value
+      }
+    /**
+     * `.mrt.DeletePath delete_path = 7;`
+     */
+    public fun clearDeletePath() {
+      _builder.clearDeletePath()
+    }
+    /**
+     * `.mrt.DeletePath delete_path = 7;`
+     * @return Whether the deletePath field is set.
+     */
+    public fun hasDeletePath(): kotlin.Boolean {
+      return _builder.hasDeletePath()
+    }
+
+    /**
+     * `.mrt.RenamePath rename_path = 8;`
+     */
+    public var renamePath: mrt.Mrt.RenamePath
+      @kotlin.jvm.JvmName("getRenamePath")
+        get() = _builder.renamePath
+      @kotlin.jvm.JvmName("setRenamePath")
+        set(value) {
+        _builder.renamePath = value
+      }
+    /**
+     * `.mrt.RenamePath rename_path = 8;`
+     */
+    public fun clearRenamePath() {
+      _builder.clearRenamePath()
+    }
+    /**
+     * `.mrt.RenamePath rename_path = 8;`
+     * @return Whether the renamePath field is set.
+     */
+    public fun hasRenamePath(): kotlin.Boolean {
+      return _builder.hasRenamePath()
+    }
     public val opCase: mrt.Mrt.FileOperation.OpCase
     @kotlin.jvm.JvmName("getOpCase")
       get() = _builder.getOpCase()
@@ -145,4 +241,16 @@ public val mrt.Mrt.FileOperationOrBuilder.readFileOrNull: mrt.Mrt.ReadFile?
 
 public val mrt.Mrt.FileOperationOrBuilder.writeFileOrNull: mrt.Mrt.WriteFile?
   get() = if (hasWriteFile()) getWriteFile() else null
+
+public val mrt.Mrt.FileOperationOrBuilder.createFileOrNull: mrt.Mrt.CreateFile?
+  get() = if (hasCreateFile()) getCreateFile() else null
+
+public val mrt.Mrt.FileOperationOrBuilder.createDirOrNull: mrt.Mrt.CreateDir?
+  get() = if (hasCreateDir()) getCreateDir() else null
+
+public val mrt.Mrt.FileOperationOrBuilder.deletePathOrNull: mrt.Mrt.DeletePath?
+  get() = if (hasDeletePath()) getDeletePath() else null
+
+public val mrt.Mrt.FileOperationOrBuilder.renamePathOrNull: mrt.Mrt.RenamePath?
+  get() = if (hasRenamePath()) getRenamePath() else null
 

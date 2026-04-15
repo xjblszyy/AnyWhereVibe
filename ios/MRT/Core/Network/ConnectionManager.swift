@@ -23,6 +23,7 @@ protocol ConnectionManaging: AnyObject {
     var onMessagesChange: (([ChatMessage]) -> Void)? { get set }
     var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)? { get set }
     var onSessionsChange: (([SessionModel]) -> Void)? { get set }
+    var onFileResult: ((Mrt_Envelope) -> Void)? { get set }
     var onGitResult: ((Mrt_Envelope) -> Void)? { get set }
 
     func connect(host: String, port: Int) async throws
@@ -33,6 +34,13 @@ protocol ConnectionManaging: AnyObject {
     func switchSession(to sessionID: String) async throws
     func createSession(name: String, workingDirectory: String) async throws
     func closeSession(id: String) async throws
+    func listDirectory(sessionID: String, path: String) async throws -> String
+    func readFile(sessionID: String, path: String) async throws -> String
+    func writeFile(sessionID: String, path: String, content: Data) async throws -> String
+    func createFile(sessionID: String, path: String) async throws -> String
+    func createDirectory(sessionID: String, path: String) async throws -> String
+    func deletePath(sessionID: String, path: String, recursive: Bool) async throws -> String
+    func renamePath(sessionID: String, fromPath: String, toPath: String) async throws -> String
     func requestGitStatus(sessionID: String) async throws -> String
     func requestGitDiff(sessionID: String, path: String) async throws -> String
 }
@@ -42,6 +50,11 @@ extension ConnectionManaging {
     }
 
     func switchSession(to sessionID: String) async throws {
+    }
+
+    var onFileResult: ((Mrt_Envelope) -> Void)? {
+        get { nil }
+        set { }
     }
 
     var onGitResult: ((Mrt_Envelope) -> Void)? {
@@ -95,6 +108,7 @@ final class ConnectionManager: ConnectionManaging {
     var onSessionsChange: (([SessionModel]) -> Void)? {
         didSet { onSessionsChange?(sessions) }
     }
+    var onFileResult: ((Mrt_Envelope) -> Void)?
     var onGitResult: ((Mrt_Envelope) -> Void)?
     var onDevicesChange: (([Mrt_DeviceInfo]) -> Void)? {
         didSet { onDevicesChange?(devices) }
@@ -315,6 +329,111 @@ final class ConnectionManager: ConnectionManaging {
         })
     }
 
+    func listDirectory(sessionID: String, path: String) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.listDir = .with { request in
+                    request.path = path
+                    request.recursive = false
+                    request.maxDepth = 0
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func readFile(sessionID: String, path: String) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.readFile = .with { request in
+                    request.path = path
+                    request.offset = 0
+                    request.length = 0
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func writeFile(sessionID: String, path: String, content: Data) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.writeFile = .with { request in
+                    request.path = path
+                    request.content = content
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func createFile(sessionID: String, path: String) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.createFile = .with { request in
+                    request.path = path
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func createDirectory(sessionID: String, path: String) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.createDir = .with { request in
+                    request.path = path
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func deletePath(sessionID: String, path: String, recursive: Bool) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.deletePath = .with { request in
+                    request.path = path
+                    request.recursive = recursive
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func renamePath(sessionID: String, fromPath: String, toPath: String) async throws -> String {
+        guard handshakeSucceeded else { throw ConnectionManagerError.notConnected }
+        let envelope = makeEnvelope { envelope in
+            envelope.fileOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.renamePath = .with { request in
+                    request.fromPath = fromPath
+                    request.toPath = toPath
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
     func requestGitStatus(sessionID: String) async throws -> String {
         guard handshakeSucceeded else {
             throw ConnectionManagerError.notConnected
@@ -415,6 +534,8 @@ final class ConnectionManager: ConnectionManaging {
                 } else {
                     self.state = .connected
                 }
+            case .fileResult:
+                self.onFileResult?(envelope)
             case .gitResult:
                 self.onGitResult?(envelope)
             default:

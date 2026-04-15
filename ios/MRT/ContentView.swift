@@ -26,6 +26,7 @@ struct ContentView: View {
 
     @State private var selectedTab: Tab = .chat
     @StateObject private var chatViewModel: ChatViewModel
+    @StateObject private var filesViewModel: FilesViewModel
     @StateObject private var gitViewModel: GitViewModel
     @StateObject private var sessionViewModel: SessionViewModel
     @StateObject private var phoneWatchBridge: PhoneWatchBridge
@@ -38,11 +39,13 @@ struct ContentView: View {
     ) {
         let sessionViewModel = SessionViewModel(connectionManager: connectionManager)
         let chatViewModel = ChatViewModel(connectionManager: connectionManager)
+        let filesViewModel = FilesViewModel(connectionManager: connectionManager)
         let gitViewModel = GitViewModel(connectionManager: connectionManager)
 
         _preferences = StateObject(wrappedValue: preferences)
         _sessionViewModel = StateObject(wrappedValue: sessionViewModel)
         _chatViewModel = StateObject(wrappedValue: chatViewModel)
+        _filesViewModel = StateObject(wrappedValue: filesViewModel)
         _gitViewModel = StateObject(wrappedValue: gitViewModel)
         self.concreteConnectionManager = connectionManager as? ConnectionManager
         _phoneWatchBridge = StateObject(
@@ -81,7 +84,7 @@ struct ContentView: View {
                 case .git:
                     GitScreen(viewModel: gitViewModel)
                 case .files:
-                    FilesPlaceholderView()
+                    FilesScreen(viewModel: filesViewModel)
                 case .settings:
                     SettingsView(preferences: preferences, connectionManager: concreteConnectionManager)
                 }
@@ -109,16 +112,24 @@ struct ContentView: View {
                 activeSessionID: sessionViewModel.activeSessionID
             )
             gitViewModel.setVisible(selectedTab == .git)
+            filesViewModel.updateContext(
+                connectionState: chatViewModel.connectionState,
+                activeSessionID: sessionViewModel.activeSessionID
+            )
+            filesViewModel.setVisible(selectedTab == .files)
         }
         .onChange(of: sessionViewModel.activeSessionID) { _, newValue in
             chatViewModel.activeSessionID = newValue
             gitViewModel.updateContext(connectionState: chatViewModel.connectionState, activeSessionID: newValue)
+            filesViewModel.updateContext(connectionState: chatViewModel.connectionState, activeSessionID: newValue)
         }
         .onChange(of: chatViewModel.connectionState) { _, newValue in
             gitViewModel.updateContext(connectionState: newValue, activeSessionID: sessionViewModel.activeSessionID)
+            filesViewModel.updateContext(connectionState: newValue, activeSessionID: sessionViewModel.activeSessionID)
         }
         .onChange(of: selectedTab) { _, newValue in
             gitViewModel.setVisible(newValue == .git)
+            filesViewModel.setVisible(newValue == .files)
         }
         .task(id: preferences.connectionConfigurationSignature) {
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {

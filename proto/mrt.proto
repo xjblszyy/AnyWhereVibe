@@ -201,12 +201,20 @@ message FileOperation {
     ListDir list_dir = 2;
     ReadFile read_file = 3;
     WriteFile write_file = 4;
+    CreateFile create_file = 5;
+    CreateDir create_dir = 6;
+    DeletePath delete_path = 7;
+    RenamePath rename_path = 8;
   }
 }
 
 message ListDir  { string path = 1; bool recursive = 2; uint32 max_depth = 3; }
 message ReadFile { string path = 1; uint64 offset = 2; uint64 length = 3; }
 message WriteFile { string path = 1; bytes content = 2; }
+message CreateFile { string path = 1; }
+message CreateDir { string path = 1; }
+message DeletePath { string path = 1; bool recursive = 2; }
+message RenamePath { string from_path = 1; string to_path = 2; }
 
 message FileResult {
   string session_id = 1;
@@ -214,6 +222,7 @@ message FileResult {
     DirListing dir_listing = 2;
     FileContent file_content = 3;
     FileWriteAck write_ack = 4;
+    FileMutationAck mutation_ack = 5;
     ErrorEvent error = 10;
   }
 }
@@ -239,6 +248,12 @@ message FileContent {
 message FileWriteAck {
   string path = 1;
   bool success = 2;
+}
+
+message FileMutationAck {
+  string path = 1;
+  bool success = 2;
+  string message = 3;
 }
 
 // ═══════════════════════════════════════════

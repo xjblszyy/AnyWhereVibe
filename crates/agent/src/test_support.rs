@@ -5,14 +5,16 @@ use futures_util::{SinkExt, StreamExt};
 use proto_gen::agent_command::Cmd;
 use proto_gen::agent_event::Evt;
 use proto_gen::envelope::Payload;
+use proto_gen::file_operation::Op as FileOp;
 use proto_gen::git_operation::Op as GitOp;
 use proto_gen::session_control::Action;
 use proto_gen::{
     AgentCommand, AgentEvent, AgentInfo, ApprovalRequest, ApprovalResponse, ClientType,
     CloseSession,
-    CreateSession, Envelope, ErrorEvent, GetStatus, GitCommitReq, GitDiffReq, GitOperation,
-    GitResult, GitStatusReq, Handshake, Heartbeat, SendPrompt, SessionControl, SessionInfo,
-    SessionListUpdate, TaskStatusUpdate,
+    CreateDir, CreateFile, CreateSession, DeletePath, DirListing, Envelope, ErrorEvent,
+    FileContent, FileMutationAck, FileOperation, FileResult, GetStatus, GitCommitReq, GitDiffReq,
+    GitOperation, GitResult, GitStatusReq, Handshake, Heartbeat, ListDir, ReadFile, RenamePath,
+    SendPrompt, SessionControl, SessionInfo, SessionListUpdate, TaskStatusUpdate, WriteFile,
 };
 use tempfile::TempDir;
 use tokio::sync::{oneshot, Mutex};
@@ -425,6 +427,92 @@ impl TestClient {
         }
     }
 
+    pub async fn send_list_dir(&mut self, session_id: &str, path: &str) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::ListDir(ListDir {
+                path: path.to_owned(),
+                recursive: false,
+                max_depth: 0,
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_read_file(&mut self, session_id: &str, path: &str) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::ReadFile(ReadFile {
+                path: path.to_owned(),
+                offset: 0,
+                length: 0,
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_write_file(&mut self, session_id: &str, path: &str, content: &[u8]) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::WriteFile(WriteFile {
+                path: path.to_owned(),
+                content: content.to_vec(),
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_create_file(&mut self, session_id: &str, path: &str) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::CreateFile(CreateFile {
+                path: path.to_owned(),
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_create_dir(&mut self, session_id: &str, path: &str) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::CreateDir(CreateDir {
+                path: path.to_owned(),
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_delete_path(&mut self, session_id: &str, path: &str, recursive: bool) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::DeletePath(DeletePath {
+                path: path.to_owned(),
+                recursive,
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_rename_path(&mut self, session_id: &str, from_path: &str, to_path: &str) -> String {
+        self.send_file_operation(
+            session_id,
+            FileOp::RenamePath(RenamePath {
+                from_path: from_path.to_owned(),
+                to_path: to_path.to_owned(),
+            }),
+        )
+        .await
+    }
+
+    pub async fn expect_file_result(&mut self) -> (String, FileResult) {
+        loop {
+            let envelope = self.next_envelope().await;
+            if let Some(Payload::FileResult(result)) = envelope.payload {
+                return (envelope.request_id, result)
+            }
+        }
+    }
+
     async fn next_envelope(&mut self) -> Envelope {
         if let Some(envelope) = self.buffered.pop_front() {
             return envelope;
@@ -444,6 +532,21 @@ impl TestClient {
             request_id: request_id.clone(),
             timestamp_ms: now_ms(),
             payload: Some(Payload::GitOp(GitOperation {
+                session_id: session_id.to_owned(),
+                op: Some(op),
+            })),
+        })
+        .await;
+        request_id
+    }
+
+    async fn send_file_operation(&mut self, session_id: &str, op: FileOp) -> String {
+        let request_id = new_request_id();
+        self.send_envelope(Envelope {
+            protocol_version: 1,
+            request_id: request_id.clone(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::FileOp(FileOperation {
                 session_id: session_id.to_owned(),
                 op: Some(op),
             })),

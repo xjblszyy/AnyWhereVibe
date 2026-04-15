@@ -103,13 +103,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return ClientTypeVerifier.INSTANCE;
     }
 
-    private static final class ClientTypeVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class ClientTypeVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new ClientTypeVerifier();
             @java.lang.Override
@@ -252,13 +252,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return OutputTypeVerifier.INSTANCE;
     }
 
-    private static final class OutputTypeVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class OutputTypeVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new OutputTypeVerifier();
             @java.lang.Override
@@ -360,13 +360,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return ApprovalTypeVerifier.INSTANCE;
     }
 
-    private static final class ApprovalTypeVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class ApprovalTypeVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new ApprovalTypeVerifier();
             @java.lang.Override
@@ -495,13 +495,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return TaskStatusVerifier.INSTANCE;
     }
 
-    private static final class TaskStatusVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class TaskStatusVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new TaskStatusVerifier();
             @java.lang.Override
@@ -603,13 +603,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return DeviceTypeVerifier.INSTANCE;
     }
 
-    private static final class DeviceTypeVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class DeviceTypeVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new DeviceTypeVerifier();
             @java.lang.Override
@@ -718,13 +718,13 @@ public final class Mrt {
             }
           };
 
-    public static com.google.protobuf.Internal.EnumVerifier 
+    public static com.google.protobuf.Internal.EnumVerifier
         internalGetVerifier() {
       return ConnectionTypeVerifier.INSTANCE;
     }
 
-    private static final class ConnectionTypeVerifier implements 
-         com.google.protobuf.Internal.EnumVerifier { 
+    private static final class ConnectionTypeVerifier implements
+         com.google.protobuf.Internal.EnumVerifier {
             static final com.google.protobuf.Internal.EnumVerifier
                 INSTANCE = new ConnectionTypeVerifier();
             @java.lang.Override
@@ -1112,7 +1112,7 @@ public final class Mrt {
      * @param value The protocolVersion to set.
      */
     private void setProtocolVersion(int value) {
-      
+
       protocolVersion_ = value;
     }
     /**
@@ -1218,7 +1218,7 @@ public final class Mrt {
      * @param value The timestampMs to set.
      */
     private void setTimestampMs(long value) {
-      
+
       timestampMs_ = value;
     }
     /**
@@ -3558,7 +3558,7 @@ public final class Mrt {
      * @param value The protocolVersion to set.
      */
     private void setProtocolVersion(int value) {
-      
+
       protocolVersion_ = value;
     }
     /**
@@ -5324,7 +5324,7 @@ public final class Mrt {
      * @param value The approved to set.
      */
     private void setApproved(boolean value) {
-      
+
       approved_ = value;
     }
     /**
@@ -7376,7 +7376,7 @@ public final class Mrt {
      * @param value The isComplete to set.
      */
     private void setIsComplete(boolean value) {
-      
+
       isComplete_ = value;
     }
     /**
@@ -9253,7 +9253,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.SessionInfo sessions = 1;</code>
      */
-    java.util.List<mrt.Mrt.SessionInfo> 
+    java.util.List<mrt.Mrt.SessionInfo>
         getSessionsList();
     /**
      * <code>repeated .mrt.SessionInfo sessions = 1;</code>
@@ -9287,7 +9287,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.SessionInfo sessions = 1;</code>
      */
-    public java.util.List<? extends mrt.Mrt.SessionInfoOrBuilder> 
+    public java.util.List<? extends mrt.Mrt.SessionInfoOrBuilder>
         getSessionsOrBuilderList() {
       return sessions_;
     }
@@ -9884,7 +9884,7 @@ public final class Mrt {
      * @param value The createdAtMs to set.
      */
     private void setCreatedAtMs(long value) {
-      
+
       createdAtMs_ = value;
     }
     /**
@@ -9910,7 +9910,7 @@ public final class Mrt {
      * @param value The lastActiveMs to set.
      */
     private void setLastActiveMs(long value) {
-      
+
       lastActiveMs_ = value;
     }
     /**
@@ -11310,7 +11310,7 @@ public final class Mrt {
      * @param value The fatal to set.
      */
     private void setFatal(boolean value) {
-      
+
       fatal_ = value;
     }
     /**
@@ -14112,6 +14112,50 @@ public final class Mrt {
      */
     mrt.Mrt.WriteFile getWriteFile();
 
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     * @return Whether the createFile field is set.
+     */
+    boolean hasCreateFile();
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     * @return The createFile.
+     */
+    mrt.Mrt.CreateFile getCreateFile();
+
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     * @return Whether the createDir field is set.
+     */
+    boolean hasCreateDir();
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     * @return The createDir.
+     */
+    mrt.Mrt.CreateDir getCreateDir();
+
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     * @return Whether the deletePath field is set.
+     */
+    boolean hasDeletePath();
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     * @return The deletePath.
+     */
+    mrt.Mrt.DeletePath getDeletePath();
+
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     * @return Whether the renamePath field is set.
+     */
+    boolean hasRenamePath();
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     * @return The renamePath.
+     */
+    mrt.Mrt.RenamePath getRenamePath();
+
     public mrt.Mrt.FileOperation.OpCase getOpCase();
   }
   /**
@@ -14132,6 +14176,10 @@ public final class Mrt {
       LIST_DIR(2),
       READ_FILE(3),
       WRITE_FILE(4),
+      CREATE_FILE(5),
+      CREATE_DIR(6),
+      DELETE_PATH(7),
+      RENAME_PATH(8),
       OP_NOT_SET(0);
       private final int value;
       private OpCase(int value) {
@@ -14150,6 +14198,10 @@ public final class Mrt {
           case 2: return LIST_DIR;
           case 3: return READ_FILE;
           case 4: return WRITE_FILE;
+          case 5: return CREATE_FILE;
+          case 6: return CREATE_DIR;
+          case 7: return DELETE_PATH;
+          case 8: return RENAME_PATH;
           case 0: return OP_NOT_SET;
           default: return null;
         }
@@ -14390,6 +14442,214 @@ public final class Mrt {
      */
     private void clearWriteFile() {
       if (opCase_ == 4) {
+        opCase_ = 0;
+        op_ = null;
+      }
+    }
+
+    public static final int CREATE_FILE_FIELD_NUMBER = 5;
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     */
+    @java.lang.Override
+    public boolean hasCreateFile() {
+      return opCase_ == 5;
+    }
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     */
+    @java.lang.Override
+    public mrt.Mrt.CreateFile getCreateFile() {
+      if (opCase_ == 5) {
+         return (mrt.Mrt.CreateFile) op_;
+      }
+      return mrt.Mrt.CreateFile.getDefaultInstance();
+    }
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setCreateFile(mrt.Mrt.CreateFile value) {
+      value.getClass();  // minimal bytecode null check
+      op_ = value;
+      opCase_ = 5;
+    }
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void mergeCreateFile(mrt.Mrt.CreateFile value) {
+      value.getClass();  // minimal bytecode null check
+      if (opCase_ == 5 &&
+          op_ != mrt.Mrt.CreateFile.getDefaultInstance()) {
+        op_ = mrt.Mrt.CreateFile.newBuilder((mrt.Mrt.CreateFile) op_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        op_ = value;
+      }
+      opCase_ = 5;
+    }
+    /**
+     * <code>.mrt.CreateFile create_file = 5;</code>
+     */
+    private void clearCreateFile() {
+      if (opCase_ == 5) {
+        opCase_ = 0;
+        op_ = null;
+      }
+    }
+
+    public static final int CREATE_DIR_FIELD_NUMBER = 6;
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     */
+    @java.lang.Override
+    public boolean hasCreateDir() {
+      return opCase_ == 6;
+    }
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     */
+    @java.lang.Override
+    public mrt.Mrt.CreateDir getCreateDir() {
+      if (opCase_ == 6) {
+         return (mrt.Mrt.CreateDir) op_;
+      }
+      return mrt.Mrt.CreateDir.getDefaultInstance();
+    }
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setCreateDir(mrt.Mrt.CreateDir value) {
+      value.getClass();  // minimal bytecode null check
+      op_ = value;
+      opCase_ = 6;
+    }
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void mergeCreateDir(mrt.Mrt.CreateDir value) {
+      value.getClass();  // minimal bytecode null check
+      if (opCase_ == 6 &&
+          op_ != mrt.Mrt.CreateDir.getDefaultInstance()) {
+        op_ = mrt.Mrt.CreateDir.newBuilder((mrt.Mrt.CreateDir) op_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        op_ = value;
+      }
+      opCase_ = 6;
+    }
+    /**
+     * <code>.mrt.CreateDir create_dir = 6;</code>
+     */
+    private void clearCreateDir() {
+      if (opCase_ == 6) {
+        opCase_ = 0;
+        op_ = null;
+      }
+    }
+
+    public static final int DELETE_PATH_FIELD_NUMBER = 7;
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     */
+    @java.lang.Override
+    public boolean hasDeletePath() {
+      return opCase_ == 7;
+    }
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     */
+    @java.lang.Override
+    public mrt.Mrt.DeletePath getDeletePath() {
+      if (opCase_ == 7) {
+         return (mrt.Mrt.DeletePath) op_;
+      }
+      return mrt.Mrt.DeletePath.getDefaultInstance();
+    }
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setDeletePath(mrt.Mrt.DeletePath value) {
+      value.getClass();  // minimal bytecode null check
+      op_ = value;
+      opCase_ = 7;
+    }
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void mergeDeletePath(mrt.Mrt.DeletePath value) {
+      value.getClass();  // minimal bytecode null check
+      if (opCase_ == 7 &&
+          op_ != mrt.Mrt.DeletePath.getDefaultInstance()) {
+        op_ = mrt.Mrt.DeletePath.newBuilder((mrt.Mrt.DeletePath) op_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        op_ = value;
+      }
+      opCase_ = 7;
+    }
+    /**
+     * <code>.mrt.DeletePath delete_path = 7;</code>
+     */
+    private void clearDeletePath() {
+      if (opCase_ == 7) {
+        opCase_ = 0;
+        op_ = null;
+      }
+    }
+
+    public static final int RENAME_PATH_FIELD_NUMBER = 8;
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     */
+    @java.lang.Override
+    public boolean hasRenamePath() {
+      return opCase_ == 8;
+    }
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     */
+    @java.lang.Override
+    public mrt.Mrt.RenamePath getRenamePath() {
+      if (opCase_ == 8) {
+         return (mrt.Mrt.RenamePath) op_;
+      }
+      return mrt.Mrt.RenamePath.getDefaultInstance();
+    }
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setRenamePath(mrt.Mrt.RenamePath value) {
+      value.getClass();  // minimal bytecode null check
+      op_ = value;
+      opCase_ = 8;
+    }
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void mergeRenamePath(mrt.Mrt.RenamePath value) {
+      value.getClass();  // minimal bytecode null check
+      if (opCase_ == 8 &&
+          op_ != mrt.Mrt.RenamePath.getDefaultInstance()) {
+        op_ = mrt.Mrt.RenamePath.newBuilder((mrt.Mrt.RenamePath) op_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        op_ = value;
+      }
+      opCase_ = 8;
+    }
+    /**
+     * <code>.mrt.RenamePath rename_path = 8;</code>
+     */
+    private void clearRenamePath() {
+      if (opCase_ == 8) {
         opCase_ = 0;
         op_ = null;
       }
@@ -14717,6 +14977,198 @@ public final class Mrt {
         return this;
       }
 
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      @java.lang.Override
+      public boolean hasCreateFile() {
+        return instance.hasCreateFile();
+      }
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      @java.lang.Override
+      public mrt.Mrt.CreateFile getCreateFile() {
+        return instance.getCreateFile();
+      }
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      public Builder setCreateFile(mrt.Mrt.CreateFile value) {
+        copyOnWrite();
+        instance.setCreateFile(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      public Builder setCreateFile(
+          mrt.Mrt.CreateFile.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCreateFile(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      public Builder mergeCreateFile(mrt.Mrt.CreateFile value) {
+        copyOnWrite();
+        instance.mergeCreateFile(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateFile create_file = 5;</code>
+       */
+      public Builder clearCreateFile() {
+        copyOnWrite();
+        instance.clearCreateFile();
+        return this;
+      }
+
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      @java.lang.Override
+      public boolean hasCreateDir() {
+        return instance.hasCreateDir();
+      }
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      @java.lang.Override
+      public mrt.Mrt.CreateDir getCreateDir() {
+        return instance.getCreateDir();
+      }
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      public Builder setCreateDir(mrt.Mrt.CreateDir value) {
+        copyOnWrite();
+        instance.setCreateDir(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      public Builder setCreateDir(
+          mrt.Mrt.CreateDir.Builder builderForValue) {
+        copyOnWrite();
+        instance.setCreateDir(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      public Builder mergeCreateDir(mrt.Mrt.CreateDir value) {
+        copyOnWrite();
+        instance.mergeCreateDir(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.CreateDir create_dir = 6;</code>
+       */
+      public Builder clearCreateDir() {
+        copyOnWrite();
+        instance.clearCreateDir();
+        return this;
+      }
+
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      @java.lang.Override
+      public boolean hasDeletePath() {
+        return instance.hasDeletePath();
+      }
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      @java.lang.Override
+      public mrt.Mrt.DeletePath getDeletePath() {
+        return instance.getDeletePath();
+      }
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      public Builder setDeletePath(mrt.Mrt.DeletePath value) {
+        copyOnWrite();
+        instance.setDeletePath(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      public Builder setDeletePath(
+          mrt.Mrt.DeletePath.Builder builderForValue) {
+        copyOnWrite();
+        instance.setDeletePath(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      public Builder mergeDeletePath(mrt.Mrt.DeletePath value) {
+        copyOnWrite();
+        instance.mergeDeletePath(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.DeletePath delete_path = 7;</code>
+       */
+      public Builder clearDeletePath() {
+        copyOnWrite();
+        instance.clearDeletePath();
+        return this;
+      }
+
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      @java.lang.Override
+      public boolean hasRenamePath() {
+        return instance.hasRenamePath();
+      }
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      @java.lang.Override
+      public mrt.Mrt.RenamePath getRenamePath() {
+        return instance.getRenamePath();
+      }
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      public Builder setRenamePath(mrt.Mrt.RenamePath value) {
+        copyOnWrite();
+        instance.setRenamePath(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      public Builder setRenamePath(
+          mrt.Mrt.RenamePath.Builder builderForValue) {
+        copyOnWrite();
+        instance.setRenamePath(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      public Builder mergeRenamePath(mrt.Mrt.RenamePath value) {
+        copyOnWrite();
+        instance.mergeRenamePath(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.RenamePath rename_path = 8;</code>
+       */
+      public Builder clearRenamePath() {
+        copyOnWrite();
+        instance.clearRenamePath();
+        return this;
+      }
+
       // @@protoc_insertion_point(builder_scope:mrt.FileOperation)
     }
     @java.lang.Override
@@ -14739,10 +15191,14 @@ public final class Mrt {
               mrt.Mrt.ListDir.class,
               mrt.Mrt.ReadFile.class,
               mrt.Mrt.WriteFile.class,
+              mrt.Mrt.CreateFile.class,
+              mrt.Mrt.CreateDir.class,
+              mrt.Mrt.DeletePath.class,
+              mrt.Mrt.RenamePath.class,
             };
             java.lang.String info =
-                "\u0000\u0004\u0001\u0000\u0001\u0004\u0004\u0000\u0000\u0000\u0001\u0208\u0002<\u0000" +
-                "\u0003<\u0000\u0004<\u0000";
+                "\u0000\b\u0001\u0000\u0001\b\b\u0000\u0000\u0000\u0001\u0208\u0002<\u0000\u0003<" +
+                "\u0000\u0004<\u0000\u0005<\u0000\u0006<\u0000\u0007<\u0000\b<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         case GET_DEFAULT_INSTANCE: {
@@ -14899,7 +15355,7 @@ public final class Mrt {
      * @param value The recursive to set.
      */
     private void setRecursive(boolean value) {
-      
+
       recursive_ = value;
     }
     /**
@@ -14925,7 +15381,7 @@ public final class Mrt {
      * @param value The maxDepth to set.
      */
     private void setMaxDepth(int value) {
-      
+
       maxDepth_ = value;
     }
     /**
@@ -15317,7 +15773,7 @@ public final class Mrt {
      * @param value The offset to set.
      */
     private void setOffset(long value) {
-      
+
       offset_ = value;
     }
     /**
@@ -15343,7 +15799,7 @@ public final class Mrt {
      * @param value The length to set.
      */
     private void setLength(long value) {
-      
+
       length_ = value;
     }
     /**
@@ -15731,7 +16187,7 @@ public final class Mrt {
      */
     private void setContent(com.google.protobuf.ByteString value) {
       java.lang.Class<?> valueClass = value.getClass();
-  
+
       content_ = value;
     }
     /**
@@ -15992,6 +16448,1360 @@ public final class Mrt {
     }
   }
 
+  public interface CreateFileOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:mrt.CreateFile)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    java.lang.String getPath();
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    com.google.protobuf.ByteString
+        getPathBytes();
+  }
+  /**
+   * Protobuf type {@code mrt.CreateFile}
+   */
+  public  static final class CreateFile extends
+      com.google.protobuf.GeneratedMessageLite<
+          CreateFile, CreateFile.Builder> implements
+      // @@protoc_insertion_point(message_implements:mrt.CreateFile)
+      CreateFileOrBuilder {
+    private CreateFile() {
+      path_ = "";
+    }
+    public static final int PATH_FIELD_NUMBER = 1;
+    private java.lang.String path_;
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    @java.lang.Override
+    public java.lang.String getPath() {
+      return path_;
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(path_);
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The path to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      path_ = value;
+    }
+    /**
+     * <code>string path = 1;</code>
+     */
+    private void clearPath() {
+
+      path_ = getDefaultInstance().getPath();
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The bytes for path to set.
+     */
+    private void setPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      path_ = value.toStringUtf8();
+
+    }
+
+    public static mrt.Mrt.CreateFile parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static mrt.Mrt.CreateFile parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+
+    public static mrt.Mrt.CreateFile parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.CreateFile parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(mrt.Mrt.CreateFile prototype) {
+      return DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code mrt.CreateFile}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          mrt.Mrt.CreateFile, Builder> implements
+        // @@protoc_insertion_point(builder_implements:mrt.CreateFile)
+        mrt.Mrt.CreateFileOrBuilder {
+      // Construct using mrt.Mrt.CreateFile.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string path = 1;</code>
+       * @return The path.
+       */
+      @java.lang.Override
+      public java.lang.String getPath() {
+        return instance.getPath();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return The bytes for path.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPathBytes() {
+        return instance.getPathBytes();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPath(value);
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPath() {
+        copyOnWrite();
+        instance.clearPath();
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The bytes for path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPathBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:mrt.CreateFile)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"ThrowNull"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new mrt.Mrt.CreateFile();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "path_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<mrt.Mrt.CreateFile> parser = PARSER;
+          if (parser == null) {
+            synchronized (mrt.Mrt.CreateFile.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<mrt.Mrt.CreateFile>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+        }
+        case GET_MEMOIZED_IS_INITIALIZED: {
+          return (byte) 1;
+        }
+        // SET_MEMOIZED_IS_INITIALIZED is never called for this message.
+        // So it can do anything. Combine with default case for smaller codegen.
+        case SET_MEMOIZED_IS_INITIALIZED:
+      }
+      // Should never happen. Generates tight code to throw an exception.
+      throw null;
+    }
+
+
+    // @@protoc_insertion_point(class_scope:mrt.CreateFile)
+    private static final mrt.Mrt.CreateFile DEFAULT_INSTANCE;
+    static {
+      CreateFile defaultInstance = new CreateFile();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        CreateFile.class, defaultInstance);
+    }
+
+    public static mrt.Mrt.CreateFile getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<CreateFile> PARSER;
+
+    public static com.google.protobuf.Parser<CreateFile> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface CreateDirOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:mrt.CreateDir)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    java.lang.String getPath();
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    com.google.protobuf.ByteString
+        getPathBytes();
+  }
+  /**
+   * Protobuf type {@code mrt.CreateDir}
+   */
+  public  static final class CreateDir extends
+      com.google.protobuf.GeneratedMessageLite<
+          CreateDir, CreateDir.Builder> implements
+      // @@protoc_insertion_point(message_implements:mrt.CreateDir)
+      CreateDirOrBuilder {
+    private CreateDir() {
+      path_ = "";
+    }
+    public static final int PATH_FIELD_NUMBER = 1;
+    private java.lang.String path_;
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    @java.lang.Override
+    public java.lang.String getPath() {
+      return path_;
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(path_);
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The path to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      path_ = value;
+    }
+    /**
+     * <code>string path = 1;</code>
+     */
+    private void clearPath() {
+
+      path_ = getDefaultInstance().getPath();
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The bytes for path to set.
+     */
+    private void setPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      path_ = value.toStringUtf8();
+
+    }
+
+    public static mrt.Mrt.CreateDir parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static mrt.Mrt.CreateDir parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+
+    public static mrt.Mrt.CreateDir parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.CreateDir parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(mrt.Mrt.CreateDir prototype) {
+      return DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code mrt.CreateDir}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          mrt.Mrt.CreateDir, Builder> implements
+        // @@protoc_insertion_point(builder_implements:mrt.CreateDir)
+        mrt.Mrt.CreateDirOrBuilder {
+      // Construct using mrt.Mrt.CreateDir.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string path = 1;</code>
+       * @return The path.
+       */
+      @java.lang.Override
+      public java.lang.String getPath() {
+        return instance.getPath();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return The bytes for path.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPathBytes() {
+        return instance.getPathBytes();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPath(value);
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPath() {
+        copyOnWrite();
+        instance.clearPath();
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The bytes for path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPathBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:mrt.CreateDir)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"ThrowNull"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new mrt.Mrt.CreateDir();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "path_",
+            };
+            java.lang.String info =
+                "\u0000\u0001\u0000\u0000\u0001\u0001\u0001\u0000\u0000\u0000\u0001\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<mrt.Mrt.CreateDir> parser = PARSER;
+          if (parser == null) {
+            synchronized (mrt.Mrt.CreateDir.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<mrt.Mrt.CreateDir>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+        }
+        case GET_MEMOIZED_IS_INITIALIZED: {
+          return (byte) 1;
+        }
+        // SET_MEMOIZED_IS_INITIALIZED is never called for this message.
+        // So it can do anything. Combine with default case for smaller codegen.
+        case SET_MEMOIZED_IS_INITIALIZED:
+      }
+      // Should never happen. Generates tight code to throw an exception.
+      throw null;
+    }
+
+
+    // @@protoc_insertion_point(class_scope:mrt.CreateDir)
+    private static final mrt.Mrt.CreateDir DEFAULT_INSTANCE;
+    static {
+      CreateDir defaultInstance = new CreateDir();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        CreateDir.class, defaultInstance);
+    }
+
+    public static mrt.Mrt.CreateDir getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<CreateDir> PARSER;
+
+    public static com.google.protobuf.Parser<CreateDir> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface DeletePathOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:mrt.DeletePath)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    java.lang.String getPath();
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    com.google.protobuf.ByteString
+        getPathBytes();
+
+    /**
+     * <code>bool recursive = 2;</code>
+     * @return The recursive.
+     */
+    boolean getRecursive();
+  }
+  /**
+   * Protobuf type {@code mrt.DeletePath}
+   */
+  public  static final class DeletePath extends
+      com.google.protobuf.GeneratedMessageLite<
+          DeletePath, DeletePath.Builder> implements
+      // @@protoc_insertion_point(message_implements:mrt.DeletePath)
+      DeletePathOrBuilder {
+    private DeletePath() {
+      path_ = "";
+    }
+    public static final int PATH_FIELD_NUMBER = 1;
+    private java.lang.String path_;
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    @java.lang.Override
+    public java.lang.String getPath() {
+      return path_;
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(path_);
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The path to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      path_ = value;
+    }
+    /**
+     * <code>string path = 1;</code>
+     */
+    private void clearPath() {
+
+      path_ = getDefaultInstance().getPath();
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The bytes for path to set.
+     */
+    private void setPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      path_ = value.toStringUtf8();
+
+    }
+
+    public static final int RECURSIVE_FIELD_NUMBER = 2;
+    private boolean recursive_;
+    /**
+     * <code>bool recursive = 2;</code>
+     * @return The recursive.
+     */
+    @java.lang.Override
+    public boolean getRecursive() {
+      return recursive_;
+    }
+    /**
+     * <code>bool recursive = 2;</code>
+     * @param value The recursive to set.
+     */
+    private void setRecursive(boolean value) {
+
+      recursive_ = value;
+    }
+    /**
+     * <code>bool recursive = 2;</code>
+     */
+    private void clearRecursive() {
+
+      recursive_ = false;
+    }
+
+    public static mrt.Mrt.DeletePath parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static mrt.Mrt.DeletePath parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+
+    public static mrt.Mrt.DeletePath parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.DeletePath parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(mrt.Mrt.DeletePath prototype) {
+      return DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code mrt.DeletePath}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          mrt.Mrt.DeletePath, Builder> implements
+        // @@protoc_insertion_point(builder_implements:mrt.DeletePath)
+        mrt.Mrt.DeletePathOrBuilder {
+      // Construct using mrt.Mrt.DeletePath.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string path = 1;</code>
+       * @return The path.
+       */
+      @java.lang.Override
+      public java.lang.String getPath() {
+        return instance.getPath();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return The bytes for path.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPathBytes() {
+        return instance.getPathBytes();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPath(value);
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPath() {
+        copyOnWrite();
+        instance.clearPath();
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The bytes for path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPathBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>bool recursive = 2;</code>
+       * @return The recursive.
+       */
+      @java.lang.Override
+      public boolean getRecursive() {
+        return instance.getRecursive();
+      }
+      /**
+       * <code>bool recursive = 2;</code>
+       * @param value The recursive to set.
+       * @return This builder for chaining.
+       */
+      public Builder setRecursive(boolean value) {
+        copyOnWrite();
+        instance.setRecursive(value);
+        return this;
+      }
+      /**
+       * <code>bool recursive = 2;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearRecursive() {
+        copyOnWrite();
+        instance.clearRecursive();
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:mrt.DeletePath)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"ThrowNull"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new mrt.Mrt.DeletePath();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "path_",
+              "recursive_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0007" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<mrt.Mrt.DeletePath> parser = PARSER;
+          if (parser == null) {
+            synchronized (mrt.Mrt.DeletePath.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<mrt.Mrt.DeletePath>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+        }
+        case GET_MEMOIZED_IS_INITIALIZED: {
+          return (byte) 1;
+        }
+        // SET_MEMOIZED_IS_INITIALIZED is never called for this message.
+        // So it can do anything. Combine with default case for smaller codegen.
+        case SET_MEMOIZED_IS_INITIALIZED:
+      }
+      // Should never happen. Generates tight code to throw an exception.
+      throw null;
+    }
+
+
+    // @@protoc_insertion_point(class_scope:mrt.DeletePath)
+    private static final mrt.Mrt.DeletePath DEFAULT_INSTANCE;
+    static {
+      DeletePath defaultInstance = new DeletePath();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        DeletePath.class, defaultInstance);
+    }
+
+    public static mrt.Mrt.DeletePath getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<DeletePath> PARSER;
+
+    public static com.google.protobuf.Parser<DeletePath> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface RenamePathOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:mrt.RenamePath)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string from_path = 1;</code>
+     * @return The fromPath.
+     */
+    java.lang.String getFromPath();
+    /**
+     * <code>string from_path = 1;</code>
+     * @return The bytes for fromPath.
+     */
+    com.google.protobuf.ByteString
+        getFromPathBytes();
+
+    /**
+     * <code>string to_path = 2;</code>
+     * @return The toPath.
+     */
+    java.lang.String getToPath();
+    /**
+     * <code>string to_path = 2;</code>
+     * @return The bytes for toPath.
+     */
+    com.google.protobuf.ByteString
+        getToPathBytes();
+  }
+  /**
+   * Protobuf type {@code mrt.RenamePath}
+   */
+  public  static final class RenamePath extends
+      com.google.protobuf.GeneratedMessageLite<
+          RenamePath, RenamePath.Builder> implements
+      // @@protoc_insertion_point(message_implements:mrt.RenamePath)
+      RenamePathOrBuilder {
+    private RenamePath() {
+      fromPath_ = "";
+      toPath_ = "";
+    }
+    public static final int FROM_PATH_FIELD_NUMBER = 1;
+    private java.lang.String fromPath_;
+    /**
+     * <code>string from_path = 1;</code>
+     * @return The fromPath.
+     */
+    @java.lang.Override
+    public java.lang.String getFromPath() {
+      return fromPath_;
+    }
+    /**
+     * <code>string from_path = 1;</code>
+     * @return The bytes for fromPath.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getFromPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(fromPath_);
+    }
+    /**
+     * <code>string from_path = 1;</code>
+     * @param value The fromPath to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setFromPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      fromPath_ = value;
+    }
+    /**
+     * <code>string from_path = 1;</code>
+     */
+    private void clearFromPath() {
+
+      fromPath_ = getDefaultInstance().getFromPath();
+    }
+    /**
+     * <code>string from_path = 1;</code>
+     * @param value The bytes for fromPath to set.
+     */
+    private void setFromPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      fromPath_ = value.toStringUtf8();
+
+    }
+
+    public static final int TO_PATH_FIELD_NUMBER = 2;
+    private java.lang.String toPath_;
+    /**
+     * <code>string to_path = 2;</code>
+     * @return The toPath.
+     */
+    @java.lang.Override
+    public java.lang.String getToPath() {
+      return toPath_;
+    }
+    /**
+     * <code>string to_path = 2;</code>
+     * @return The bytes for toPath.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getToPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(toPath_);
+    }
+    /**
+     * <code>string to_path = 2;</code>
+     * @param value The toPath to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setToPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      toPath_ = value;
+    }
+    /**
+     * <code>string to_path = 2;</code>
+     */
+    private void clearToPath() {
+
+      toPath_ = getDefaultInstance().getToPath();
+    }
+    /**
+     * <code>string to_path = 2;</code>
+     * @param value The bytes for toPath to set.
+     */
+    private void setToPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      toPath_ = value.toStringUtf8();
+
+    }
+
+    public static mrt.Mrt.RenamePath parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static mrt.Mrt.RenamePath parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+
+    public static mrt.Mrt.RenamePath parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.RenamePath parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(mrt.Mrt.RenamePath prototype) {
+      return DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code mrt.RenamePath}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          mrt.Mrt.RenamePath, Builder> implements
+        // @@protoc_insertion_point(builder_implements:mrt.RenamePath)
+        mrt.Mrt.RenamePathOrBuilder {
+      // Construct using mrt.Mrt.RenamePath.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string from_path = 1;</code>
+       * @return The fromPath.
+       */
+      @java.lang.Override
+      public java.lang.String getFromPath() {
+        return instance.getFromPath();
+      }
+      /**
+       * <code>string from_path = 1;</code>
+       * @return The bytes for fromPath.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getFromPathBytes() {
+        return instance.getFromPathBytes();
+      }
+      /**
+       * <code>string from_path = 1;</code>
+       * @param value The fromPath to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFromPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setFromPath(value);
+        return this;
+      }
+      /**
+       * <code>string from_path = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearFromPath() {
+        copyOnWrite();
+        instance.clearFromPath();
+        return this;
+      }
+      /**
+       * <code>string from_path = 1;</code>
+       * @param value The bytes for fromPath to set.
+       * @return This builder for chaining.
+       */
+      public Builder setFromPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setFromPathBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>string to_path = 2;</code>
+       * @return The toPath.
+       */
+      @java.lang.Override
+      public java.lang.String getToPath() {
+        return instance.getToPath();
+      }
+      /**
+       * <code>string to_path = 2;</code>
+       * @return The bytes for toPath.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getToPathBytes() {
+        return instance.getToPathBytes();
+      }
+      /**
+       * <code>string to_path = 2;</code>
+       * @param value The toPath to set.
+       * @return This builder for chaining.
+       */
+      public Builder setToPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setToPath(value);
+        return this;
+      }
+      /**
+       * <code>string to_path = 2;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearToPath() {
+        copyOnWrite();
+        instance.clearToPath();
+        return this;
+      }
+      /**
+       * <code>string to_path = 2;</code>
+       * @param value The bytes for toPath to set.
+       * @return This builder for chaining.
+       */
+      public Builder setToPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setToPathBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:mrt.RenamePath)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"ThrowNull"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new mrt.Mrt.RenamePath();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "fromPath_",
+              "toPath_",
+            };
+            java.lang.String info =
+                "\u0000\u0002\u0000\u0000\u0001\u0002\u0002\u0000\u0000\u0000\u0001\u0208\u0002\u0208" +
+                "";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<mrt.Mrt.RenamePath> parser = PARSER;
+          if (parser == null) {
+            synchronized (mrt.Mrt.RenamePath.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<mrt.Mrt.RenamePath>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+        }
+        case GET_MEMOIZED_IS_INITIALIZED: {
+          return (byte) 1;
+        }
+        // SET_MEMOIZED_IS_INITIALIZED is never called for this message.
+        // So it can do anything. Combine with default case for smaller codegen.
+        case SET_MEMOIZED_IS_INITIALIZED:
+      }
+      // Should never happen. Generates tight code to throw an exception.
+      throw null;
+    }
+
+
+    // @@protoc_insertion_point(class_scope:mrt.RenamePath)
+    private static final mrt.Mrt.RenamePath DEFAULT_INSTANCE;
+    static {
+      RenamePath defaultInstance = new RenamePath();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        RenamePath.class, defaultInstance);
+    }
+
+    public static mrt.Mrt.RenamePath getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<RenamePath> PARSER;
+
+    public static com.google.protobuf.Parser<RenamePath> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
   public interface FileResultOrBuilder extends
       // @@protoc_insertion_point(interface_extends:mrt.FileResult)
       com.google.protobuf.MessageLiteOrBuilder {
@@ -16042,6 +17852,17 @@ public final class Mrt {
     mrt.Mrt.FileWriteAck getWriteAck();
 
     /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     * @return Whether the mutationAck field is set.
+     */
+    boolean hasMutationAck();
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     * @return The mutationAck.
+     */
+    mrt.Mrt.FileMutationAck getMutationAck();
+
+    /**
      * <code>.mrt.ErrorEvent error = 10;</code>
      * @return Whether the error field is set.
      */
@@ -16072,6 +17893,7 @@ public final class Mrt {
       DIR_LISTING(2),
       FILE_CONTENT(3),
       WRITE_ACK(4),
+      MUTATION_ACK(5),
       ERROR(10),
       RESULT_NOT_SET(0);
       private final int value;
@@ -16091,6 +17913,7 @@ public final class Mrt {
           case 2: return DIR_LISTING;
           case 3: return FILE_CONTENT;
           case 4: return WRITE_ACK;
+          case 5: return MUTATION_ACK;
           case 10: return ERROR;
           case 0: return RESULT_NOT_SET;
           default: return null;
@@ -16312,6 +18135,58 @@ public final class Mrt {
      */
     private void clearWriteAck() {
       if (resultCase_ == 4) {
+        resultCase_ = 0;
+        result_ = null;
+      }
+    }
+
+    public static final int MUTATION_ACK_FIELD_NUMBER = 5;
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     */
+    @java.lang.Override
+    public boolean hasMutationAck() {
+      return resultCase_ == 5;
+    }
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     */
+    @java.lang.Override
+    public mrt.Mrt.FileMutationAck getMutationAck() {
+      if (resultCase_ == 5) {
+         return (mrt.Mrt.FileMutationAck) result_;
+      }
+      return mrt.Mrt.FileMutationAck.getDefaultInstance();
+    }
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setMutationAck(mrt.Mrt.FileMutationAck value) {
+      value.getClass();  // minimal bytecode null check
+      result_ = value;
+      resultCase_ = 5;
+    }
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void mergeMutationAck(mrt.Mrt.FileMutationAck value) {
+      value.getClass();  // minimal bytecode null check
+      if (resultCase_ == 5 &&
+          result_ != mrt.Mrt.FileMutationAck.getDefaultInstance()) {
+        result_ = mrt.Mrt.FileMutationAck.newBuilder((mrt.Mrt.FileMutationAck) result_)
+            .mergeFrom(value).buildPartial();
+      } else {
+        result_ = value;
+      }
+      resultCase_ = 5;
+    }
+    /**
+     * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+     */
+    private void clearMutationAck() {
+      if (resultCase_ == 5) {
         resultCase_ = 0;
         result_ = null;
       }
@@ -16672,6 +18547,54 @@ public final class Mrt {
       }
 
       /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      @java.lang.Override
+      public boolean hasMutationAck() {
+        return instance.hasMutationAck();
+      }
+      /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      @java.lang.Override
+      public mrt.Mrt.FileMutationAck getMutationAck() {
+        return instance.getMutationAck();
+      }
+      /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      public Builder setMutationAck(mrt.Mrt.FileMutationAck value) {
+        copyOnWrite();
+        instance.setMutationAck(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      public Builder setMutationAck(
+          mrt.Mrt.FileMutationAck.Builder builderForValue) {
+        copyOnWrite();
+        instance.setMutationAck(builderForValue.build());
+        return this;
+      }
+      /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      public Builder mergeMutationAck(mrt.Mrt.FileMutationAck value) {
+        copyOnWrite();
+        instance.mergeMutationAck(value);
+        return this;
+      }
+      /**
+       * <code>.mrt.FileMutationAck mutation_ack = 5;</code>
+       */
+      public Builder clearMutationAck() {
+        copyOnWrite();
+        instance.clearMutationAck();
+        return this;
+      }
+
+      /**
        * <code>.mrt.ErrorEvent error = 10;</code>
        */
       @java.lang.Override
@@ -16741,11 +18664,12 @@ public final class Mrt {
               mrt.Mrt.DirListing.class,
               mrt.Mrt.FileContent.class,
               mrt.Mrt.FileWriteAck.class,
+              mrt.Mrt.FileMutationAck.class,
               mrt.Mrt.ErrorEvent.class,
             };
             java.lang.String info =
-                "\u0000\u0005\u0001\u0000\u0001\n\u0005\u0000\u0000\u0000\u0001\u0208\u0002<\u0000" +
-                "\u0003<\u0000\u0004<\u0000\n<\u0000";
+                "\u0000\u0006\u0001\u0000\u0001\n\u0006\u0000\u0000\u0000\u0001\u0208\u0002<\u0000" +
+                "\u0003<\u0000\u0004<\u0000\u0005<\u0000\n<\u0000";
             return newMessageInfo(DEFAULT_INSTANCE, info, objects);
         }
         case GET_DEFAULT_INSTANCE: {
@@ -16807,7 +18731,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.FileEntry entries = 1;</code>
      */
-    java.util.List<mrt.Mrt.FileEntry> 
+    java.util.List<mrt.Mrt.FileEntry>
         getEntriesList();
     /**
      * <code>repeated .mrt.FileEntry entries = 1;</code>
@@ -16841,7 +18765,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.FileEntry entries = 1;</code>
      */
-    public java.util.List<? extends mrt.Mrt.FileEntryOrBuilder> 
+    public java.util.List<? extends mrt.Mrt.FileEntryOrBuilder>
         getEntriesOrBuilderList() {
       return entries_;
     }
@@ -17369,7 +19293,7 @@ public final class Mrt {
      * @param value The isDir to set.
      */
     private void setIsDir(boolean value) {
-      
+
       isDir_ = value;
     }
     /**
@@ -17395,7 +19319,7 @@ public final class Mrt {
      * @param value The size to set.
      */
     private void setSize(long value) {
-      
+
       size_ = value;
     }
     /**
@@ -17421,7 +19345,7 @@ public final class Mrt {
      * @param value The modifiedMs to set.
      */
     private void setModifiedMs(long value) {
-      
+
       modifiedMs_ = value;
     }
     /**
@@ -17901,7 +19825,7 @@ public final class Mrt {
      */
     private void setContent(com.google.protobuf.ByteString value) {
       java.lang.Class<?> valueClass = value.getClass();
-  
+
       content_ = value;
     }
     /**
@@ -18356,7 +20280,7 @@ public final class Mrt {
      * @param value The success to set.
      */
     private void setSuccess(boolean value) {
-      
+
       success_ = value;
     }
     /**
@@ -18613,6 +20537,474 @@ public final class Mrt {
     private static volatile com.google.protobuf.Parser<FileWriteAck> PARSER;
 
     public static com.google.protobuf.Parser<FileWriteAck> parser() {
+      return DEFAULT_INSTANCE.getParserForType();
+    }
+  }
+
+  public interface FileMutationAckOrBuilder extends
+      // @@protoc_insertion_point(interface_extends:mrt.FileMutationAck)
+      com.google.protobuf.MessageLiteOrBuilder {
+
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    java.lang.String getPath();
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    com.google.protobuf.ByteString
+        getPathBytes();
+
+    /**
+     * <code>bool success = 2;</code>
+     * @return The success.
+     */
+    boolean getSuccess();
+
+    /**
+     * <code>string message = 3;</code>
+     * @return The message.
+     */
+    java.lang.String getMessage();
+    /**
+     * <code>string message = 3;</code>
+     * @return The bytes for message.
+     */
+    com.google.protobuf.ByteString
+        getMessageBytes();
+  }
+  /**
+   * Protobuf type {@code mrt.FileMutationAck}
+   */
+  public  static final class FileMutationAck extends
+      com.google.protobuf.GeneratedMessageLite<
+          FileMutationAck, FileMutationAck.Builder> implements
+      // @@protoc_insertion_point(message_implements:mrt.FileMutationAck)
+      FileMutationAckOrBuilder {
+    private FileMutationAck() {
+      path_ = "";
+      message_ = "";
+    }
+    public static final int PATH_FIELD_NUMBER = 1;
+    private java.lang.String path_;
+    /**
+     * <code>string path = 1;</code>
+     * @return The path.
+     */
+    @java.lang.Override
+    public java.lang.String getPath() {
+      return path_;
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @return The bytes for path.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getPathBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(path_);
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The path to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setPath(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      path_ = value;
+    }
+    /**
+     * <code>string path = 1;</code>
+     */
+    private void clearPath() {
+
+      path_ = getDefaultInstance().getPath();
+    }
+    /**
+     * <code>string path = 1;</code>
+     * @param value The bytes for path to set.
+     */
+    private void setPathBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      path_ = value.toStringUtf8();
+
+    }
+
+    public static final int SUCCESS_FIELD_NUMBER = 2;
+    private boolean success_;
+    /**
+     * <code>bool success = 2;</code>
+     * @return The success.
+     */
+    @java.lang.Override
+    public boolean getSuccess() {
+      return success_;
+    }
+    /**
+     * <code>bool success = 2;</code>
+     * @param value The success to set.
+     */
+    private void setSuccess(boolean value) {
+
+      success_ = value;
+    }
+    /**
+     * <code>bool success = 2;</code>
+     */
+    private void clearSuccess() {
+
+      success_ = false;
+    }
+
+    public static final int MESSAGE_FIELD_NUMBER = 3;
+    private java.lang.String message_;
+    /**
+     * <code>string message = 3;</code>
+     * @return The message.
+     */
+    @java.lang.Override
+    public java.lang.String getMessage() {
+      return message_;
+    }
+    /**
+     * <code>string message = 3;</code>
+     * @return The bytes for message.
+     */
+    @java.lang.Override
+    public com.google.protobuf.ByteString
+        getMessageBytes() {
+      return com.google.protobuf.ByteString.copyFromUtf8(message_);
+    }
+    /**
+     * <code>string message = 3;</code>
+     * @param value The message to set.
+     */
+    @java.lang.SuppressWarnings("ReturnValueIgnored")
+    private void setMessage(
+        java.lang.String value) {
+      value.getClass();  // minimal bytecode null check
+
+      message_ = value;
+    }
+    /**
+     * <code>string message = 3;</code>
+     */
+    private void clearMessage() {
+
+      message_ = getDefaultInstance().getMessage();
+    }
+    /**
+     * <code>string message = 3;</code>
+     * @param value The bytes for message to set.
+     */
+    private void setMessageBytes(
+        com.google.protobuf.ByteString value) {
+      checkByteStringIsUtf8(value);
+      message_ = value.toStringUtf8();
+
+    }
+
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        java.nio.ByteBuffer data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        java.nio.ByteBuffer data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        com.google.protobuf.ByteString data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        com.google.protobuf.ByteString data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(byte[] data)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        byte[] data,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws com.google.protobuf.InvalidProtocolBufferException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, data, extensionRegistry);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static mrt.Mrt.FileMutationAck parseDelimitedFrom(java.io.InputStream input)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input);
+    }
+
+    public static mrt.Mrt.FileMutationAck parseDelimitedFrom(
+        java.io.InputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return parseDelimitedFrom(DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        com.google.protobuf.CodedInputStream input)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input);
+    }
+    public static mrt.Mrt.FileMutationAck parseFrom(
+        com.google.protobuf.CodedInputStream input,
+        com.google.protobuf.ExtensionRegistryLite extensionRegistry)
+        throws java.io.IOException {
+      return com.google.protobuf.GeneratedMessageLite.parseFrom(
+          DEFAULT_INSTANCE, input, extensionRegistry);
+    }
+
+    public static Builder newBuilder() {
+      return (Builder) DEFAULT_INSTANCE.createBuilder();
+    }
+    public static Builder newBuilder(mrt.Mrt.FileMutationAck prototype) {
+      return DEFAULT_INSTANCE.createBuilder(prototype);
+    }
+
+    /**
+     * Protobuf type {@code mrt.FileMutationAck}
+     */
+    public static final class Builder extends
+        com.google.protobuf.GeneratedMessageLite.Builder<
+          mrt.Mrt.FileMutationAck, Builder> implements
+        // @@protoc_insertion_point(builder_implements:mrt.FileMutationAck)
+        mrt.Mrt.FileMutationAckOrBuilder {
+      // Construct using mrt.Mrt.FileMutationAck.newBuilder()
+      private Builder() {
+        super(DEFAULT_INSTANCE);
+      }
+
+
+      /**
+       * <code>string path = 1;</code>
+       * @return The path.
+       */
+      @java.lang.Override
+      public java.lang.String getPath() {
+        return instance.getPath();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return The bytes for path.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getPathBytes() {
+        return instance.getPathBytes();
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPath(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setPath(value);
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearPath() {
+        copyOnWrite();
+        instance.clearPath();
+        return this;
+      }
+      /**
+       * <code>string path = 1;</code>
+       * @param value The bytes for path to set.
+       * @return This builder for chaining.
+       */
+      public Builder setPathBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setPathBytes(value);
+        return this;
+      }
+
+      /**
+       * <code>bool success = 2;</code>
+       * @return The success.
+       */
+      @java.lang.Override
+      public boolean getSuccess() {
+        return instance.getSuccess();
+      }
+      /**
+       * <code>bool success = 2;</code>
+       * @param value The success to set.
+       * @return This builder for chaining.
+       */
+      public Builder setSuccess(boolean value) {
+        copyOnWrite();
+        instance.setSuccess(value);
+        return this;
+      }
+      /**
+       * <code>bool success = 2;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearSuccess() {
+        copyOnWrite();
+        instance.clearSuccess();
+        return this;
+      }
+
+      /**
+       * <code>string message = 3;</code>
+       * @return The message.
+       */
+      @java.lang.Override
+      public java.lang.String getMessage() {
+        return instance.getMessage();
+      }
+      /**
+       * <code>string message = 3;</code>
+       * @return The bytes for message.
+       */
+      @java.lang.Override
+      public com.google.protobuf.ByteString
+          getMessageBytes() {
+        return instance.getMessageBytes();
+      }
+      /**
+       * <code>string message = 3;</code>
+       * @param value The message to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMessage(
+          java.lang.String value) {
+        copyOnWrite();
+        instance.setMessage(value);
+        return this;
+      }
+      /**
+       * <code>string message = 3;</code>
+       * @return This builder for chaining.
+       */
+      public Builder clearMessage() {
+        copyOnWrite();
+        instance.clearMessage();
+        return this;
+      }
+      /**
+       * <code>string message = 3;</code>
+       * @param value The bytes for message to set.
+       * @return This builder for chaining.
+       */
+      public Builder setMessageBytes(
+          com.google.protobuf.ByteString value) {
+        copyOnWrite();
+        instance.setMessageBytes(value);
+        return this;
+      }
+
+      // @@protoc_insertion_point(builder_scope:mrt.FileMutationAck)
+    }
+    @java.lang.Override
+    @java.lang.SuppressWarnings({"ThrowNull"})
+    protected final java.lang.Object dynamicMethod(
+        com.google.protobuf.GeneratedMessageLite.MethodToInvoke method,
+        java.lang.Object arg0, java.lang.Object arg1) {
+      switch (method) {
+        case NEW_MUTABLE_INSTANCE: {
+          return new mrt.Mrt.FileMutationAck();
+        }
+        case NEW_BUILDER: {
+          return new Builder();
+        }
+        case BUILD_MESSAGE_INFO: {
+            java.lang.Object[] objects = new java.lang.Object[] {
+              "path_",
+              "success_",
+              "message_",
+            };
+            java.lang.String info =
+                "\u0000\u0003\u0000\u0000\u0001\u0003\u0003\u0000\u0000\u0000\u0001\u0208\u0002\u0007" +
+                "\u0003\u0208";
+            return newMessageInfo(DEFAULT_INSTANCE, info, objects);
+        }
+        case GET_DEFAULT_INSTANCE: {
+          return DEFAULT_INSTANCE;
+        }
+        case GET_PARSER: {
+          com.google.protobuf.Parser<mrt.Mrt.FileMutationAck> parser = PARSER;
+          if (parser == null) {
+            synchronized (mrt.Mrt.FileMutationAck.class) {
+              parser = PARSER;
+              if (parser == null) {
+                parser =
+                    new DefaultInstanceBasedParser<mrt.Mrt.FileMutationAck>(
+                        DEFAULT_INSTANCE);
+                PARSER = parser;
+              }
+            }
+          }
+          return parser;
+        }
+        case GET_MEMOIZED_IS_INITIALIZED: {
+          return (byte) 1;
+        }
+        // SET_MEMOIZED_IS_INITIALIZED is never called for this message.
+        // So it can do anything. Combine with default case for smaller codegen.
+        case SET_MEMOIZED_IS_INITIALIZED:
+      }
+      // Should never happen. Generates tight code to throw an exception.
+      throw null;
+    }
+
+
+    // @@protoc_insertion_point(class_scope:mrt.FileMutationAck)
+    private static final mrt.Mrt.FileMutationAck DEFAULT_INSTANCE;
+    static {
+      FileMutationAck defaultInstance = new FileMutationAck();
+      // New instances are implicitly immutable so no need to make
+      // immutable.
+      DEFAULT_INSTANCE = defaultInstance;
+      com.google.protobuf.GeneratedMessageLite.registerDefaultInstance(
+        FileMutationAck.class, defaultInstance);
+    }
+
+    public static mrt.Mrt.FileMutationAck getDefaultInstance() {
+      return DEFAULT_INSTANCE;
+    }
+
+    private static volatile com.google.protobuf.Parser<FileMutationAck> PARSER;
+
+    public static com.google.protobuf.Parser<FileMutationAck> parser() {
       return DEFAULT_INSTANCE.getParserForType();
     }
   }
@@ -20208,7 +22600,7 @@ public final class Mrt {
      * @param value The stageAll to set.
      */
     private void setStageAll(boolean value) {
-      
+
       stageAll_ = value;
     }
     /**
@@ -21155,7 +23547,7 @@ public final class Mrt {
      * @param value The staged to set.
      */
     private void setStaged(boolean value) {
-      
+
       staged_ = value;
     }
     /**
@@ -21451,7 +23843,7 @@ public final class Mrt {
      * @param value The limit to set.
      */
     private void setLimit(int value) {
-      
+
       limit_ = value;
     }
     /**
@@ -21940,7 +24332,7 @@ public final class Mrt {
      * @param value The create to set.
      */
     private void setCreate(boolean value) {
-      
+
       create_ = value;
     }
     /**
@@ -23268,7 +25660,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.GitFileChange changes = 3;</code>
      */
-    java.util.List<mrt.Mrt.GitFileChange> 
+    java.util.List<mrt.Mrt.GitFileChange>
         getChangesList();
     /**
      * <code>repeated .mrt.GitFileChange changes = 3;</code>
@@ -23406,7 +25798,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.GitFileChange changes = 3;</code>
      */
-    public java.util.List<? extends mrt.Mrt.GitFileChangeOrBuilder> 
+    public java.util.List<? extends mrt.Mrt.GitFileChangeOrBuilder>
         getChangesOrBuilderList() {
       return changes_;
     }
@@ -23506,7 +25898,7 @@ public final class Mrt {
      * @param value The isClean to set.
      */
     private void setIsClean(boolean value) {
-      
+
       isClean_ = value;
     }
     /**
@@ -24678,7 +27070,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.GitCommitInfo commits = 1;</code>
      */
-    java.util.List<mrt.Mrt.GitCommitInfo> 
+    java.util.List<mrt.Mrt.GitCommitInfo>
         getCommitsList();
     /**
      * <code>repeated .mrt.GitCommitInfo commits = 1;</code>
@@ -24712,7 +27104,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.GitCommitInfo commits = 1;</code>
      */
-    public java.util.List<? extends mrt.Mrt.GitCommitInfoOrBuilder> 
+    public java.util.List<? extends mrt.Mrt.GitCommitInfoOrBuilder>
         getCommitsOrBuilderList() {
       return commits_;
     }
@@ -25289,7 +27681,7 @@ public final class Mrt {
      * @param value The timestampMs to set.
      */
     private void setTimestampMs(long value) {
-      
+
       timestampMs_ = value;
     }
     /**
@@ -26208,7 +28600,7 @@ public final class Mrt {
      * @param value The success to set.
      */
     private void setSuccess(boolean value) {
-      
+
       success_ = value;
     }
     /**
@@ -26552,7 +28944,7 @@ public final class Mrt {
      * @param value The timestampMs to set.
      */
     private void setTimestampMs(long value) {
-      
+
       timestampMs_ = value;
     }
     /**
@@ -27637,7 +30029,7 @@ public final class Mrt {
      * @param value The success to set.
      */
     private void setSuccess(boolean value) {
-      
+
       success_ = value;
     }
     /**
@@ -28308,7 +30700,7 @@ public final class Mrt {
      * @param value The success to set.
      */
     private void setSuccess(boolean value) {
-      
+
       success_ = value;
     }
     /**
@@ -28938,7 +31330,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.DeviceInfo devices = 1;</code>
      */
-    java.util.List<mrt.Mrt.DeviceInfo> 
+    java.util.List<mrt.Mrt.DeviceInfo>
         getDevicesList();
     /**
      * <code>repeated .mrt.DeviceInfo devices = 1;</code>
@@ -28972,7 +31364,7 @@ public final class Mrt {
     /**
      * <code>repeated .mrt.DeviceInfo devices = 1;</code>
      */
-    public java.util.List<? extends mrt.Mrt.DeviceInfoOrBuilder> 
+    public java.util.List<? extends mrt.Mrt.DeviceInfoOrBuilder>
         getDevicesOrBuilderList() {
       return devices_;
     }
@@ -29548,7 +31940,7 @@ public final class Mrt {
      * @param value The isOnline to set.
      */
     private void setIsOnline(boolean value) {
-      
+
       isOnline_ = value;
     }
     /**
@@ -29574,7 +31966,7 @@ public final class Mrt {
      * @param value The lastSeenMs to set.
      */
     private void setLastSeenMs(long value) {
-      
+
       lastSeenMs_ = value;
     }
     /**
@@ -30208,7 +32600,7 @@ public final class Mrt {
      * @param value The sdpMlineIndex to set.
      */
     private void setSdpMlineIndex(int value) {
-      
+
       sdpMlineIndex_ = value;
     }
     /**

@@ -317,6 +317,69 @@ class ConnectionManagerTest {
         assertEquals("Sources/App.kt", envelope.gitOp.diff.path)
         assertEquals(false, envelope.gitOp.diff.staged)
     }
+
+    @Test
+    fun connectionManagerSendsListDirOperationWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        val requestId = manager.listDirectory(sessionId = "session-1", path = "")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(requestId, envelope.requestId)
+        assertEquals(Mrt.Envelope.PayloadCase.FILE_OP, envelope.payloadCase)
+        assertEquals("session-1", envelope.fileOp.sessionId)
+        assertEquals(Mrt.FileOperation.OpCase.LIST_DIR, envelope.fileOp.opCase)
+        assertEquals("", envelope.fileOp.listDir.path)
+    }
+
+    @Test
+    fun connectionManagerSendsReadFileOperationWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        val requestId = manager.readFile(sessionId = "session-1", path = "notes.txt")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(requestId, envelope.requestId)
+        assertEquals(Mrt.Envelope.PayloadCase.FILE_OP, envelope.payloadCase)
+        assertEquals(Mrt.FileOperation.OpCase.READ_FILE, envelope.fileOp.opCase)
+        assertEquals("notes.txt", envelope.fileOp.readFile.path)
+    }
+
+    @Test
+    fun connectionManagerSendsFileMutationOperationsWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        manager.writeFile("session-1", "notes.txt", "hello".encodeToByteArray())
+        manager.createFile("session-1", "new.txt")
+        manager.createDirectory("session-1", "folder")
+        manager.deletePath("session-1", "folder", recursive = true)
+        manager.renamePath("session-1", "new.txt", "renamed.txt")
+
+        val writeEnvelope = ProtobufCodec.decode(socket.sentFrames[1])
+        val createFileEnvelope = ProtobufCodec.decode(socket.sentFrames[2])
+        val createDirEnvelope = ProtobufCodec.decode(socket.sentFrames[3])
+        val deleteEnvelope = ProtobufCodec.decode(socket.sentFrames[4])
+        val renameEnvelope = ProtobufCodec.decode(socket.sentFrames[5])
+
+        assertEquals(Mrt.FileOperation.OpCase.WRITE_FILE, writeEnvelope.fileOp.opCase)
+        assertEquals(Mrt.FileOperation.OpCase.CREATE_FILE, createFileEnvelope.fileOp.opCase)
+        assertEquals(Mrt.FileOperation.OpCase.CREATE_DIR, createDirEnvelope.fileOp.opCase)
+        assertEquals(Mrt.FileOperation.OpCase.DELETE_PATH, deleteEnvelope.fileOp.opCase)
+        assertEquals(Mrt.FileOperation.OpCase.RENAME_PATH, renameEnvelope.fileOp.opCase)
+        assertEquals("renamed.txt", renameEnvelope.fileOp.renamePath.toPath)
+    }
 }
 
 internal class StubWebSocketClient : WebSocketClientProtocol {

@@ -30,9 +30,10 @@ import com.mrt.app.core.storage.PreferenceSnapshot
 import com.mrt.app.core.storage.Preferences
 import com.mrt.app.features.chat.ChatScreen
 import com.mrt.app.features.chat.ChatViewModel
+import com.mrt.app.features.files.FilesScreen
+import com.mrt.app.features.files.FilesViewModel
 import com.mrt.app.features.git.GitScreen
 import com.mrt.app.features.git.GitViewModel
-import com.mrt.app.features.placeholders.FilesPlaceholderScreen
 import com.mrt.app.features.sessions.SessionsScreen
 import com.mrt.app.features.sessions.SessionViewModel
 import com.mrt.app.features.settings.SettingsScreen
@@ -63,6 +64,7 @@ fun AppNavigation() {
     val connectionManager = remember { ConnectionManager() }
     val preferences = remember { Preferences.create(context.applicationContext) }
     val chatViewModel = remember { ChatViewModel(connectionManager = connectionManager) }
+    val filesViewModel = remember { FilesViewModel(connectionManager = connectionManager) }
     val gitViewModel = remember { GitViewModel(connectionManager = connectionManager) }
     val sessionViewModel = remember { SessionViewModel(connectionManager = connectionManager) }
     val preferenceSnapshot by preferences.snapshot.collectAsState(initial = PreferenceSnapshot())
@@ -95,6 +97,11 @@ fun AppNavigation() {
     }
 
     LaunchedEffect(destination, sessionViewModel.activeSessionId, chatViewModel.connectionState) {
+        filesViewModel.updateContext(
+            connectionState = chatViewModel.connectionState,
+            activeSessionId = sessionViewModel.activeSessionId,
+        )
+        filesViewModel.setVisible(destination == AppDestination.Files)
         gitViewModel.updateContext(
             connectionState = chatViewModel.connectionState,
             activeSessionId = sessionViewModel.activeSessionId,
@@ -133,7 +140,10 @@ fun AppNavigation() {
                     viewModel = gitViewModel,
                     modifier = Modifier.padding(innerPadding),
                 )
-                AppDestination.Files -> FilesPlaceholderScreen(modifier = Modifier.padding(innerPadding))
+                AppDestination.Files -> FilesScreen(
+                    viewModel = filesViewModel,
+                    modifier = Modifier.padding(innerPadding),
+                )
                 AppDestination.Settings -> SettingsScreen(
                     preferences = preferences,
                     connectionManager = connectionManager,

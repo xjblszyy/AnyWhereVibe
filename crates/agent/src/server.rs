@@ -8,13 +8,16 @@ use futures_util::{Sink, SinkExt, StreamExt};
 use proto_gen::agent_command::Cmd;
 use proto_gen::agent_event::Evt;
 use proto_gen::envelope::Payload;
+use proto_gen::file_operation::Op as FileOp;
+use proto_gen::file_result::Result as FileResultPayload;
 use proto_gen::git_operation::Op as GitOp;
 use proto_gen::git_result::Result as GitResultPayload;
 use proto_gen::session_control::Action;
 use proto_gen::{
     AgentEvent, AgentInfo, ApprovalResponse, CancelTask, CloseSession, CreateSession, Envelope,
-    ErrorEvent, GetStatus, GitOperation, GitResult, Heartbeat, SendPrompt, SessionInfo,
-    SessionListUpdate, TaskStatus,
+    DeletePath, ErrorEvent, FileOperation, FileResult, GetStatus, GitOperation, GitResult,
+    Heartbeat, ListDir, ReadFile, RenamePath, SendPrompt, SessionInfo, SessionListUpdate,
+    TaskStatus, WriteFile,
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, oneshot, Mutex};
@@ -27,6 +30,7 @@ use tracing::{debug, warn};
 use uuid::Uuid;
 
 use crate::adapter::AgentAdapter;
+use crate::files::FileService;
 use crate::git::GitService;
 use crate::session::SessionManager;
 use crate::wire::{decode_ws_binary_message, encode_ws_binary_message};
@@ -329,6 +333,10 @@ async fn route_envelope(
 
             Ok(false)
         }
+        Some(Payload::FileOp(file_op)) => {
+            route_file_operation(state, write, envelope.request_id, file_op).await?;
+            Ok(false)
+        }
         Some(Payload::GitOp(git_op)) => {
             route_git_operation(state, write, envelope.request_id, git_op).await?;
             Ok(false)
@@ -478,6 +486,172 @@ async fn route_command(
                 AgentEvent {
                     evt: Some(Evt::SessionList(SessionListUpdate { sessions: filtered })),
                 },
+            )
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn route_file_operation(
+    state: &ServerState,
+    write: &mut WsWrite,
+    request_id: String,
+    file_op: FileOperation,
+) -> Result<()> {
+    let session_id = file_op.session_id.clone();
+    let working_dir = {
+        let sessions = state.sessions.lock().await;
+        sessions.get(&session_id).map(|session| session.working_dir.clone())
+    };
+
+    let Some(working_dir) = working_dir else {
+        send_file_error(
+            write,
+            &request_id,
+            &session_id,
+            "FILE_SESSION_NOT_FOUND",
+            format!("session '{}' does not exist", session_id),
+        )
+        .await?;
+        return Ok(());
+    };
+
+    let working_dir = std::path::Path::new(&working_dir);
+    match file_op.op {
+        Some(FileOp::ListDir(ListDir {
+            path,
+            recursive,
+            max_depth,
+        })) => match FileService::list_dir(working_dir, &path, recursive, max_depth) {
+            Ok(dir_listing) => {
+                send_file_result(
+                    write,
+                    &request_id,
+                    FileResult {
+                        session_id,
+                        result: Some(FileResultPayload::DirListing(dir_listing)),
+                    },
+                )
+                .await?;
+            }
+            Err(error) => {
+                send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+            }
+        },
+        Some(FileOp::ReadFile(ReadFile { path, offset, length })) => {
+            match FileService::read_file(working_dir, &path, offset, length) {
+                Ok(file_content) => {
+                    send_file_result(
+                        write,
+                        &request_id,
+                        FileResult {
+                            session_id,
+                            result: Some(FileResultPayload::FileContent(file_content)),
+                        },
+                    )
+                    .await?;
+                }
+                Err(error) => {
+                    send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+                }
+            }
+        }
+        Some(FileOp::WriteFile(WriteFile { path, content })) => {
+            match FileService::write_file(working_dir, &path, &content) {
+                Ok(write_ack) => {
+                    send_file_result(
+                        write,
+                        &request_id,
+                        FileResult {
+                            session_id,
+                            result: Some(FileResultPayload::WriteAck(write_ack)),
+                        },
+                    )
+                    .await?;
+                }
+                Err(error) => {
+                    send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+                }
+            }
+        }
+        Some(FileOp::CreateFile(create)) => match FileService::create_file(working_dir, &create.path) {
+            Ok(mutation_ack) => {
+                send_file_result(
+                    write,
+                    &request_id,
+                    FileResult {
+                        session_id,
+                        result: Some(FileResultPayload::MutationAck(mutation_ack)),
+                    },
+                )
+                .await?;
+            }
+            Err(error) => {
+                send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+            }
+        },
+        Some(FileOp::CreateDir(create)) => match FileService::create_dir(working_dir, &create.path) {
+            Ok(mutation_ack) => {
+                send_file_result(
+                    write,
+                    &request_id,
+                    FileResult {
+                        session_id,
+                        result: Some(FileResultPayload::MutationAck(mutation_ack)),
+                    },
+                )
+                .await?;
+            }
+            Err(error) => {
+                send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+            }
+        },
+        Some(FileOp::DeletePath(DeletePath { path, recursive })) => {
+            match FileService::delete_path(working_dir, &path, recursive) {
+                Ok(mutation_ack) => {
+                    send_file_result(
+                        write,
+                        &request_id,
+                        FileResult {
+                            session_id,
+                            result: Some(FileResultPayload::MutationAck(mutation_ack)),
+                        },
+                    )
+                    .await?;
+                }
+                Err(error) => {
+                    send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+                }
+            }
+        }
+        Some(FileOp::RenamePath(RenamePath {
+            from_path,
+            to_path,
+        })) => match FileService::rename_path(working_dir, &from_path, &to_path) {
+            Ok(mutation_ack) => {
+                send_file_result(
+                    write,
+                    &request_id,
+                    FileResult {
+                        session_id,
+                        result: Some(FileResultPayload::MutationAck(mutation_ack)),
+                    },
+                )
+                .await?;
+            }
+            Err(error) => {
+                send_file_error(write, &request_id, &session_id, error.code(), error.message()).await?;
+            }
+        },
+        None => {
+            send_file_error(
+                write,
+                &request_id,
+                &session_id,
+                "FILE_WRITE_FAILED",
+                "file operation did not include a payload",
             )
             .await?;
         }
@@ -798,6 +972,22 @@ where
     .await
 }
 
+async fn send_file_result<S>(write: &mut S, request_id: &str, result: FileResult) -> Result<()>
+where
+    S: Sink<Message, Error = tungstenite::Error> + Unpin,
+{
+    send_envelope(
+        write,
+        Envelope {
+            protocol_version: PROTOCOL_VERSION,
+            request_id: request_id.to_owned(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::FileResult(result)),
+        },
+    )
+    .await
+}
+
 async fn send_error<S>(
     write: &mut S,
     request_id: &str,
@@ -838,6 +1028,31 @@ where
         GitResult {
             session_id: session_id.to_owned(),
             result: Some(GitResultPayload::Error(ErrorEvent {
+                code: code.to_owned(),
+                message: message.into(),
+                fatal: false,
+            })),
+        },
+    )
+    .await
+}
+
+async fn send_file_error<S>(
+    write: &mut S,
+    request_id: &str,
+    session_id: &str,
+    code: &str,
+    message: impl Into<String>,
+) -> Result<()>
+where
+    S: Sink<Message, Error = tungstenite::Error> + Unpin,
+{
+    send_file_result(
+        write,
+        request_id,
+        FileResult {
+            session_id: session_id.to_owned(),
+            result: Some(FileResultPayload::Error(ErrorEvent {
                 code: code.to_owned(),
                 message: message.into(),
                 fatal: false,

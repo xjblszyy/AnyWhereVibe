@@ -389,6 +389,97 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerSendsListDirOperation() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        let requestID = try await manager.listDirectory(sessionID: "session-1", path: "")
+
+        let fileEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        XCTAssertEqual(fileEnvelope.requestID, requestID)
+        if case .fileOp(let operation) = fileEnvelope.payload,
+           case .listDir(let listDir)? = operation.op {
+            XCTAssertEqual(operation.sessionID, "session-1")
+            XCTAssertEqual(listDir.path, "")
+            XCTAssertFalse(listDir.recursive)
+        } else {
+            XCTFail("Expected file list envelope")
+        }
+    }
+
+    func testConnectionManagerSendsReadFileOperation() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        let requestID = try await manager.readFile(sessionID: "session-1", path: "notes.txt")
+
+        let fileEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        XCTAssertEqual(fileEnvelope.requestID, requestID)
+        if case .fileOp(let operation) = fileEnvelope.payload,
+           case .readFile(let readFile)? = operation.op {
+            XCTAssertEqual(operation.sessionID, "session-1")
+            XCTAssertEqual(readFile.path, "notes.txt")
+            XCTAssertEqual(readFile.offset, 0)
+            XCTAssertEqual(readFile.length, 0)
+        } else {
+            XCTFail("Expected file read envelope")
+        }
+    }
+
+    func testConnectionManagerSendsCreateDeleteRenameOperations() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        _ = try await manager.createFile(sessionID: "session-1", path: "new.txt")
+        _ = try await manager.createDirectory(sessionID: "session-1", path: "folder")
+        _ = try await manager.deletePath(sessionID: "session-1", path: "new.txt", recursive: false)
+        _ = try await manager.renamePath(sessionID: "session-1", fromPath: "folder", toPath: "renamed")
+
+        let createFileEnvelope = try ProtobufCodec.decode(socket.sentData[1])
+        let createDirEnvelope = try ProtobufCodec.decode(socket.sentData[2])
+        let deleteEnvelope = try ProtobufCodec.decode(socket.sentData[3])
+        let renameEnvelope = try ProtobufCodec.decode(socket.sentData[4])
+
+        if case .fileOp(let operation) = createFileEnvelope.payload,
+           case .createFile(let createFile)? = operation.op {
+            XCTAssertEqual(createFile.path, "new.txt")
+        } else {
+            XCTFail("Expected create file envelope")
+        }
+
+        if case .fileOp(let operation) = createDirEnvelope.payload,
+           case .createDir(let createDir)? = operation.op {
+            XCTAssertEqual(createDir.path, "folder")
+        } else {
+            XCTFail("Expected create dir envelope")
+        }
+
+        if case .fileOp(let operation) = deleteEnvelope.payload,
+           case .deletePath(let deletePath)? = operation.op {
+            XCTAssertEqual(deletePath.path, "new.txt")
+            XCTAssertFalse(deletePath.recursive)
+        } else {
+            XCTFail("Expected delete path envelope")
+        }
+
+        if case .fileOp(let operation) = renameEnvelope.payload,
+           case .renamePath(let renamePath)? = operation.op {
+            XCTAssertEqual(renamePath.fromPath, "folder")
+            XCTAssertEqual(renamePath.toPath, "renamed")
+        } else {
+            XCTFail("Expected rename path envelope")
+        }
+    }
+
     func testConnectionManagerRegistersPhoneInManagedMode() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)

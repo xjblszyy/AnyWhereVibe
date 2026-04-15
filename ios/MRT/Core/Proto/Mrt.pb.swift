@@ -980,12 +980,48 @@ struct Mrt_FileOperation: Sendable {
     set {op = .writeFile(newValue)}
   }
 
+  var createFile: Mrt_CreateFile {
+    get {
+      if case .createFile(let v)? = op {return v}
+      return Mrt_CreateFile()
+    }
+    set {op = .createFile(newValue)}
+  }
+
+  var createDir: Mrt_CreateDir {
+    get {
+      if case .createDir(let v)? = op {return v}
+      return Mrt_CreateDir()
+    }
+    set {op = .createDir(newValue)}
+  }
+
+  var deletePath: Mrt_DeletePath {
+    get {
+      if case .deletePath(let v)? = op {return v}
+      return Mrt_DeletePath()
+    }
+    set {op = .deletePath(newValue)}
+  }
+
+  var renamePath: Mrt_RenamePath {
+    get {
+      if case .renamePath(let v)? = op {return v}
+      return Mrt_RenamePath()
+    }
+    set {op = .renamePath(newValue)}
+  }
+
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
   enum OneOf_Op: Equatable, Sendable {
     case listDir(Mrt_ListDir)
     case readFile(Mrt_ReadFile)
     case writeFile(Mrt_WriteFile)
+    case createFile(Mrt_CreateFile)
+    case createDir(Mrt_CreateDir)
+    case deletePath(Mrt_DeletePath)
+    case renamePath(Mrt_RenamePath)
 
   }
 
@@ -1038,6 +1074,58 @@ struct Mrt_WriteFile: Sendable {
   init() {}
 }
 
+struct Mrt_CreateFile: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var path: String = String()
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
+struct Mrt_CreateDir: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var path: String = String()
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
+struct Mrt_DeletePath: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var path: String = String()
+
+  var recursive: Bool = false
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
+struct Mrt_RenamePath: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var fromPath: String = String()
+
+  var toPath: String = String()
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
 struct Mrt_FileResult: Sendable {
   // SwiftProtobuf.Message conformance is added in an extension below. See the
   // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
@@ -1071,6 +1159,14 @@ struct Mrt_FileResult: Sendable {
     set {result = .writeAck(newValue)}
   }
 
+  var mutationAck: Mrt_FileMutationAck {
+    get {
+      if case .mutationAck(let v)? = result {return v}
+      return Mrt_FileMutationAck()
+    }
+    set {result = .mutationAck(newValue)}
+  }
+
   var error: Mrt_ErrorEvent {
     get {
       if case .error(let v)? = result {return v}
@@ -1085,6 +1181,7 @@ struct Mrt_FileResult: Sendable {
     case dirListing(Mrt_DirListing)
     case fileContent(Mrt_FileContent)
     case writeAck(Mrt_FileWriteAck)
+    case mutationAck(Mrt_FileMutationAck)
     case error(Mrt_ErrorEvent)
 
   }
@@ -1148,6 +1245,22 @@ struct Mrt_FileWriteAck: Sendable {
   var path: String = String()
 
   var success: Bool = false
+
+  var unknownFields = SwiftProtobuf.UnknownStorage()
+
+  init() {}
+}
+
+struct Mrt_FileMutationAck: Sendable {
+  // SwiftProtobuf.Message conformance is added in an extension below. See the
+  // `Message` and `Message+*Additions` files in the SwiftProtobuf library for
+  // methods supported on all messages.
+
+  var path: String = String()
+
+  var success: Bool = false
+
+  var message: String = String()
 
   var unknownFields = SwiftProtobuf.UnknownStorage()
 
@@ -3051,7 +3164,7 @@ extension Mrt_RenameSession: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
 
 extension Mrt_FileOperation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".FileOperation"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}session_id\0\u{3}list_dir\0\u{3}read_file\0\u{3}write_file\0")
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}session_id\0\u{3}list_dir\0\u{3}read_file\0\u{3}write_file\0\u{3}create_file\0\u{3}create_dir\0\u{3}delete_path\0\u{3}rename_path\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -3099,6 +3212,58 @@ extension Mrt_FileOperation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
           self.op = .writeFile(v)
         }
       }()
+      case 5: try {
+        var v: Mrt_CreateFile?
+        var hadOneofValue = false
+        if let current = self.op {
+          hadOneofValue = true
+          if case .createFile(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.op = .createFile(v)
+        }
+      }()
+      case 6: try {
+        var v: Mrt_CreateDir?
+        var hadOneofValue = false
+        if let current = self.op {
+          hadOneofValue = true
+          if case .createDir(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.op = .createDir(v)
+        }
+      }()
+      case 7: try {
+        var v: Mrt_DeletePath?
+        var hadOneofValue = false
+        if let current = self.op {
+          hadOneofValue = true
+          if case .deletePath(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.op = .deletePath(v)
+        }
+      }()
+      case 8: try {
+        var v: Mrt_RenamePath?
+        var hadOneofValue = false
+        if let current = self.op {
+          hadOneofValue = true
+          if case .renamePath(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.op = .renamePath(v)
+        }
+      }()
       default: break
       }
     }
@@ -3124,6 +3289,22 @@ extension Mrt_FileOperation: SwiftProtobuf.Message, SwiftProtobuf._MessageImplem
     case .writeFile?: try {
       guard case .writeFile(let v)? = self.op else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    }()
+    case .createFile?: try {
+      guard case .createFile(let v)? = self.op else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
+    }()
+    case .createDir?: try {
+      guard case .createDir(let v)? = self.op else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 6)
+    }()
+    case .deletePath?: try {
+      guard case .deletePath(let v)? = self.op else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 7)
+    }()
+    case .renamePath?: try {
+      guard case .renamePath(let v)? = self.op else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 8)
     }()
     case nil: break
     }
@@ -3253,9 +3434,139 @@ extension Mrt_WriteFile: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementa
   }
 }
 
+extension Mrt_CreateFile: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".CreateFile"
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}path\0")
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.path) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.path.isEmpty {
+      try visitor.visitSingularStringField(value: self.path, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Mrt_CreateFile, rhs: Mrt_CreateFile) -> Bool {
+    if lhs.path != rhs.path {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mrt_CreateDir: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".CreateDir"
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}path\0")
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.path) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.path.isEmpty {
+      try visitor.visitSingularStringField(value: self.path, fieldNumber: 1)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Mrt_CreateDir, rhs: Mrt_CreateDir) -> Bool {
+    if lhs.path != rhs.path {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mrt_DeletePath: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".DeletePath"
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}path\0\u{1}recursive\0")
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.path) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.recursive) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.path.isEmpty {
+      try visitor.visitSingularStringField(value: self.path, fieldNumber: 1)
+    }
+    if self.recursive != false {
+      try visitor.visitSingularBoolField(value: self.recursive, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Mrt_DeletePath, rhs: Mrt_DeletePath) -> Bool {
+    if lhs.path != rhs.path {return false}
+    if lhs.recursive != rhs.recursive {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mrt_RenamePath: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".RenamePath"
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}from_path\0\u{3}to_path\0")
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.fromPath) }()
+      case 2: try { try decoder.decodeSingularStringField(value: &self.toPath) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.fromPath.isEmpty {
+      try visitor.visitSingularStringField(value: self.fromPath, fieldNumber: 1)
+    }
+    if !self.toPath.isEmpty {
+      try visitor.visitSingularStringField(value: self.toPath, fieldNumber: 2)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Mrt_RenamePath, rhs: Mrt_RenamePath) -> Bool {
+    if lhs.fromPath != rhs.fromPath {return false}
+    if lhs.toPath != rhs.toPath {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
 extension Mrt_FileResult: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
   static let protoMessageName: String = _protobuf_package + ".FileResult"
-  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}session_id\0\u{3}dir_listing\0\u{3}file_content\0\u{3}write_ack\0\u{2}\u{6}error\0")
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{3}session_id\0\u{3}dir_listing\0\u{3}file_content\0\u{3}write_ack\0\u{3}mutation_ack\0\u{2}\u{5}error\0")
 
   mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
     while let fieldNumber = try decoder.nextFieldNumber() {
@@ -3303,6 +3614,19 @@ extension Mrt_FileResult: SwiftProtobuf.Message, SwiftProtobuf._MessageImplement
           self.result = .writeAck(v)
         }
       }()
+      case 5: try {
+        var v: Mrt_FileMutationAck?
+        var hadOneofValue = false
+        if let current = self.result {
+          hadOneofValue = true
+          if case .mutationAck(let m) = current {v = m}
+        }
+        try decoder.decodeSingularMessageField(value: &v)
+        if let v = v {
+          if hadOneofValue {try decoder.handleConflictingOneOf()}
+          self.result = .mutationAck(v)
+        }
+      }()
       case 10: try {
         var v: Mrt_ErrorEvent?
         var hadOneofValue = false
@@ -3341,6 +3665,10 @@ extension Mrt_FileResult: SwiftProtobuf.Message, SwiftProtobuf._MessageImplement
     case .writeAck?: try {
       guard case .writeAck(let v)? = self.result else { preconditionFailure() }
       try visitor.visitSingularMessageField(value: v, fieldNumber: 4)
+    }()
+    case .mutationAck?: try {
+      guard case .mutationAck(let v)? = self.result else { preconditionFailure() }
+      try visitor.visitSingularMessageField(value: v, fieldNumber: 5)
     }()
     case .error?: try {
       guard case .error(let v)? = self.result else { preconditionFailure() }
@@ -3509,6 +3837,46 @@ extension Mrt_FileWriteAck: SwiftProtobuf.Message, SwiftProtobuf._MessageImpleme
   static func ==(lhs: Mrt_FileWriteAck, rhs: Mrt_FileWriteAck) -> Bool {
     if lhs.path != rhs.path {return false}
     if lhs.success != rhs.success {return false}
+    if lhs.unknownFields != rhs.unknownFields {return false}
+    return true
+  }
+}
+
+extension Mrt_FileMutationAck: SwiftProtobuf.Message, SwiftProtobuf._MessageImplementationBase, SwiftProtobuf._ProtoNameProviding {
+  static let protoMessageName: String = _protobuf_package + ".FileMutationAck"
+  static let _protobuf_nameMap = SwiftProtobuf._NameMap(bytecode: "\0\u{1}path\0\u{1}success\0\u{1}message\0")
+
+  mutating func decodeMessage<D: SwiftProtobuf.Decoder>(decoder: inout D) throws {
+    while let fieldNumber = try decoder.nextFieldNumber() {
+      // The use of inline closures is to circumvent an issue where the compiler
+      // allocates stack space for every case branch when no optimizations are
+      // enabled. https://github.com/apple/swift-protobuf/issues/1034
+      switch fieldNumber {
+      case 1: try { try decoder.decodeSingularStringField(value: &self.path) }()
+      case 2: try { try decoder.decodeSingularBoolField(value: &self.success) }()
+      case 3: try { try decoder.decodeSingularStringField(value: &self.message) }()
+      default: break
+      }
+    }
+  }
+
+  func traverse<V: SwiftProtobuf.Visitor>(visitor: inout V) throws {
+    if !self.path.isEmpty {
+      try visitor.visitSingularStringField(value: self.path, fieldNumber: 1)
+    }
+    if self.success != false {
+      try visitor.visitSingularBoolField(value: self.success, fieldNumber: 2)
+    }
+    if !self.message.isEmpty {
+      try visitor.visitSingularStringField(value: self.message, fieldNumber: 3)
+    }
+    try unknownFields.traverse(visitor: &visitor)
+  }
+
+  static func ==(lhs: Mrt_FileMutationAck, rhs: Mrt_FileMutationAck) -> Bool {
+    if lhs.path != rhs.path {return false}
+    if lhs.success != rhs.success {return false}
+    if lhs.message != rhs.message {return false}
     if lhs.unknownFields != rhs.unknownFields {return false}
     return true
   }

@@ -7,7 +7,7 @@ repo_root="$(cd -- "${script_dir}/.." && pwd)"
 ios_project="${IOS_PROJECT_PATH:-ios/MRT.xcodeproj}"
 ios_scheme="${IOS_SCHEME:-MRT}"
 ios_simulator_id="${IOS_SIMULATOR_ID:-}"
-ios_ui_test_filters_raw="${IOS_UI_TEST_FILTERS:-MRTUITests/MRTUITests MRTUITests/GitUITests}"
+ios_ui_test_filters_raw="${IOS_UI_TEST_FILTERS:-MRTUITests/MRTUITests MRTUITests/GitUITests MRTUITests/FilesUITests}"
 
 require_tool() {
   local tool="$1"

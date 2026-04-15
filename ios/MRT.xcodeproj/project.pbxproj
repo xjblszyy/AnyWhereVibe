@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		AB2000000000000000000001 /* FileModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000011 /* FileModels.swift */; };
+		AB2000000000000000000002 /* FilesViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000012 /* FilesViewModel.swift */; };
+		AB2000000000000000000003 /* FilesScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000013 /* FilesScreen.swift */; };
+		AB2000000000000000000004 /* FilesViewModelTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000014 /* FilesViewModelTests.swift */; };
+		AB2000000000000000000005 /* FilesUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AB2000000000000000000015 /* FilesUITests.swift */; };
 		AA1000000000000000000001 /* GitModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000000000000000000011 /* GitModels.swift */; };
 		AA1000000000000000000002 /* GitViewModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000000000000000000012 /* GitViewModel.swift */; };
 		AA1000000000000000000003 /* GitScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA1000000000000000000013 /* GitScreen.swift */; };
@@ -89,6 +94,11 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		AB2000000000000000000011 /* FileModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FileModels.swift; sourceTree = "<group>"; };
+		AB2000000000000000000012 /* FilesViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesViewModel.swift; sourceTree = "<group>"; };
+		AB2000000000000000000013 /* FilesScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesScreen.swift; sourceTree = "<group>"; };
+		AB2000000000000000000014 /* FilesViewModelTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesViewModelTests.swift; sourceTree = "<group>"; };
+		AB2000000000000000000015 /* FilesUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesUITests.swift; sourceTree = "<group>"; };
 		AA1000000000000000000011 /* GitModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitModels.swift; sourceTree = "<group>"; };
 		AA1000000000000000000012 /* GitViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitViewModel.swift; sourceTree = "<group>"; };
 		AA1000000000000000000013 /* GitScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitScreen.swift; sourceTree = "<group>"; };
@@ -186,6 +196,7 @@
 			isa = PBXGroup;
 			children = (
 				26AE49F02BEF08EF54D1C30B /* Chat */,
+				AB2000000000000000000021 /* Files */,
 				AA1000000000000000000021 /* Git */,
 				549FF7FCDFCB22024C4FAFFF /* Placeholders */,
 				881E68A7D4B27EA7826A6947 /* Sessions */,
@@ -286,6 +297,15 @@
 			path = Git;
 			sourceTree = "<group>";
 		};
+		AB2000000000000000000021 /* Files */ = {
+			isa = PBXGroup;
+			children = (
+				AB2000000000000000000013 /* FilesScreen.swift */,
+				AB2000000000000000000012 /* FilesViewModel.swift */,
+			);
+			path = Files;
+			sourceTree = "<group>";
+		};
 		4DED4A3A016E083A650C70EF /* Communication */ = {
 			isa = PBXGroup;
 			children = (
@@ -318,6 +338,7 @@
 		A1B2C3D4E5F60718293A4B5E /* MRTUITests */ = {
 			isa = PBXGroup;
 			children = (
+				AB2000000000000000000015 /* FilesUITests.swift */,
 				A1B2C3D4E5F60718293A4B5C /* MRTUITests.swift */,
 				AA1000000000000000000015 /* GitUITests.swift */,
 			);
@@ -336,6 +357,7 @@
 			isa = PBXGroup;
 			children = (
 				B018FC86DFD004C0BA948A27 /* ChatViewModelTests.swift */,
+				AB2000000000000000000014 /* FilesViewModelTests.swift */,
 				AA1000000000000000000014 /* GitViewModelTests.swift */,
 			);
 			path = Features;
@@ -400,6 +422,7 @@
 			isa = PBXGroup;
 			children = (
 				A3B879026FF8028E071174E8 /* ChatMessage.swift */,
+				AB2000000000000000000011 /* FileModels.swift */,
 				AA1000000000000000000011 /* GitModels.swift */,
 				FA037CD5533D01AF723A1655 /* SessionModel.swift */,
 			);
@@ -604,6 +627,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AB2000000000000000000005 /* FilesUITests.swift in Sources */,
 				AA1000000000000000000005 /* GitUITests.swift in Sources */,
 				A1B2C3D4E5F60718293A4B5D /* MRTUITests.swift in Sources */,
 			);
@@ -616,6 +640,7 @@
 				25300D21989D948A34BA7194 /* AgentE2ETests.swift in Sources */,
 				81684B204F1B78D992FFADFC /* ChatViewModelTests.swift in Sources */,
 				0C4436750731AA55A30ED64F /* ConnectionManagerTests.swift in Sources */,
+				AB2000000000000000000004 /* FilesViewModelTests.swift in Sources */,
 				AA1000000000000000000004 /* GitViewModelTests.swift in Sources */,
 				C06E0E92FD72D6559BA28BB2 /* MessageDispatcherTests.swift in Sources */,
 				9D7F24B0224220070A88F924 /* PhoneWatchBridgeTests.swift in Sources */,
@@ -652,6 +677,9 @@
 				1C641D57DE08BFF183A68677 /* ConnectionManager.swift in Sources */,
 				D00CAED20F2FDE2CE318D6FF /* ConnectionStatusBar.swift in Sources */,
 				5B32CC107B0799E436F830CD /* ContentView.swift in Sources */,
+				AB2000000000000000000001 /* FileModels.swift in Sources */,
+				AB2000000000000000000003 /* FilesScreen.swift in Sources */,
+				AB2000000000000000000002 /* FilesViewModel.swift in Sources */,
 				6EDBD4FD8011E26D880F7CCB /* FilesPlaceholderView.swift in Sources */,
 				487986BB017F074DD43E32C8 /* GHBadge.swift in Sources */,
 				49F8ED9A9167FCCDA8CE50F2 /* GHBanner.swift in Sources */,

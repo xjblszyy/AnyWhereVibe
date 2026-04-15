@@ -136,6 +136,9 @@ private class FakeGitConnectionManager : ConnectionManaging {
     private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
     override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
 
+    private val _fileEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+    override val fileEnvelopes: StateFlow<Mrt.Envelope?> = _fileEnvelopes.asStateFlow()
+
     private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
     override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
 
@@ -151,6 +154,13 @@ private class FakeGitConnectionManager : ConnectionManaging {
     override suspend fun switchSession(sessionId: String) = Unit
     override suspend fun createSession(name: String, workingDirectory: String) = Unit
     override suspend fun closeSession(sessionId: String) = Unit
+    override suspend fun listDirectory(sessionId: String, path: String): String = "file-list"
+    override suspend fun readFile(sessionId: String, path: String): String = "file-read"
+    override suspend fun writeFile(sessionId: String, path: String, content: ByteArray): String = "file-write"
+    override suspend fun createFile(sessionId: String, path: String): String = "file-create"
+    override suspend fun createDirectory(sessionId: String, path: String): String = "dir-create"
+    override suspend fun deletePath(sessionId: String, path: String, recursive: Boolean): String = "file-delete"
+    override suspend fun renamePath(sessionId: String, fromPath: String, toPath: String): String = "file-rename"
 
     override suspend fun requestGitStatus(sessionId: String): String {
         counter += 1

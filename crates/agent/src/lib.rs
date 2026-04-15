@@ -3,6 +3,7 @@ pub mod codex;
 pub mod config;
 pub mod daemon;
 pub mod error;
+pub mod files;
 pub mod git;
 pub mod server;
 pub mod session;
