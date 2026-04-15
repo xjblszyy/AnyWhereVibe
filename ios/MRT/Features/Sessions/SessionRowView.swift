@@ -39,10 +39,12 @@ struct SessionRowView: View {
 
             if let onCancel, session.isCancellable {
                 GHButton(title: "Cancel", icon: nil, style: .danger, action: onCancel)
+                    .accessibilityIdentifier("session.cancel.\(session.id)")
             }
 
             if let onClose, session.isClosable {
                 GHButton(title: "Close", icon: nil, style: .danger, action: onClose)
+                    .accessibilityIdentifier("session.close.\(session.id)")
             }
         }
     }

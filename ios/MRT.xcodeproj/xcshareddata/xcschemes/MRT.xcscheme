@@ -50,6 +50,17 @@
                ReferencedContainer = "container:MRT.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "NO">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "A1B2C3D4E5F60718293A4B60"
+               BuildableName = "MRTUITests.xctest"
+               BlueprintName = "MRTUITests"
+               ReferencedContainer = "container:MRT.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
       <CommandLineArguments>
       </CommandLineArguments>

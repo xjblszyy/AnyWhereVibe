@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A1B2C3D4E5F60718293A4B5D /* MRTUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A1B2C3D4E5F60718293A4B5C /* MRTUITests.swift */; };
 		055B93CE4202BB830B1AA0B7 /* SessionSidebarView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 14D03AD7B46159E4ACF39197 /* SessionSidebarView.swift */; };
 		0800C19DF4DBF695655FC5F6 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F12F821EB66BF6111FD0135 /* ChatView.swift */; };
 		0C4436750731AA55A30ED64F /* ConnectionManagerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0A57534BF5F65AF5476775EA /* ConnectionManagerTests.swift */; };
@@ -73,9 +74,18 @@
 			remoteGlobalIDString = D35291BD9D5F4979D56A1E9C;
 			remoteInfo = MRT;
 		};
+		A1B2C3D4E5F60718293A4B64 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 565163A78B6D490B8622D32F /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = D35291BD9D5F4979D56A1E9C;
+			remoteInfo = MRT;
+		};
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		A1B2C3D4E5F60718293A4B5C /* MRTUITests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MRTUITests.swift; sourceTree = "<group>"; };
+		A1B2C3D4E5F60718293A4B5F /* MRTUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MRTUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		02CAAFB3E77FF397EE330E97 /* GHBanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GHBanner.swift; sourceTree = "<group>"; };
 		035BCB661695CC47EB55CEFC /* SessionsScreen.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionsScreen.swift; sourceTree = "<group>"; };
 		040DD0E799CA9B15C5E6D1C1 /* ProtobufCodecTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProtobufCodecTests.swift; sourceTree = "<group>"; };
@@ -285,6 +295,14 @@
 			path = MRTTests;
 			sourceTree = "<group>";
 		};
+		A1B2C3D4E5F60718293A4B5E /* MRTUITests */ = {
+			isa = PBXGroup;
+			children = (
+				A1B2C3D4E5F60718293A4B5C /* MRTUITests.swift */,
+			);
+			path = MRTUITests;
+			sourceTree = "<group>";
+		};
 		7E8924BDE303698EB4E827FC /* Watch */ = {
 			isa = PBXGroup;
 			children = (
@@ -317,6 +335,7 @@
 			children = (
 				F64E62D0E00FA8EED929BD2C /* MRT.app */,
 				8983AC66E8231F4CF4B0ECE3 /* MRTTests.xctest */,
+				A1B2C3D4E5F60718293A4B5F /* MRTUITests.xctest */,
 				C7337401ABCB8B8E97589F90 /* MRTWatch.app */,
 			);
 			name = Products;
@@ -398,6 +417,7 @@
 			children = (
 				BD71D81CFF704D337C5C8C7F /* MRT */,
 				5D51ED713F68E6C5AF19A7F2 /* MRTTests */,
+				A1B2C3D4E5F60718293A4B5E /* MRTUITests */,
 				227B1986D629321131589F8A /* MRTWatch */,
 				8AD11874F86D328DEDD9DBA8 /* Products */,
 			);
@@ -427,6 +447,25 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
+		A1B2C3D4E5F60718293A4B60 /* MRTUITests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = A1B2C3D4E5F60718293A4B65 /* Build configuration list for PBXNativeTarget "MRTUITests" */;
+			buildPhases = (
+				A1B2C3D4E5F60718293A4B61 /* Sources */,
+				A1B2C3D4E5F60718293A4B62 /* Frameworks */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				A1B2C3D4E5F60718293A4B63 /* PBXTargetDependency */,
+			);
+			name = MRTUITests;
+			packageProductDependencies = (
+			);
+			productName = MRTUITests;
+			productReference = A1B2C3D4E5F60718293A4B5F /* MRTUITests.xctest */;
+			productType = "com.apple.product-type.bundle.ui-testing";
+		};
 		2761C340007717F6A4BF7EAB /* MRTTests */ = {
 			isa = PBXNativeTarget;
 			buildConfigurationList = C82372BBE43CF241D1FCC90B /* Build configuration list for PBXNativeTarget "MRTTests" */;
@@ -498,6 +537,10 @@
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
 					};
+					A1B2C3D4E5F60718293A4B60 = {
+						DevelopmentTeam = "";
+						ProvisioningStyle = Automatic;
+					};
 					6E48B3E973FC0ECDE682FE6A = {
 						DevelopmentTeam = "";
 						ProvisioningStyle = Automatic;
@@ -527,12 +570,21 @@
 			targets = (
 				D35291BD9D5F4979D56A1E9C /* MRT */,
 				2761C340007717F6A4BF7EAB /* MRTTests */,
+				A1B2C3D4E5F60718293A4B60 /* MRTUITests */,
 				6E48B3E973FC0ECDE682FE6A /* MRTWatch */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXSourcesBuildPhase section */
+		A1B2C3D4E5F60718293A4B61 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A1B2C3D4E5F60718293A4B5D /* MRTUITests.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3C69936D656A0768798003FF /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -609,7 +661,22 @@
 		};
 /* End PBXSourcesBuildPhase section */
 
+/* Begin PBXFrameworksBuildPhase section */
+		A1B2C3D4E5F60718293A4B62 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXFrameworksBuildPhase section */
+
 /* Begin PBXTargetDependency section */
+		A1B2C3D4E5F60718293A4B63 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = D35291BD9D5F4979D56A1E9C /* MRT */;
+			targetProxy = A1B2C3D4E5F60718293A4B64 /* PBXContainerItemProxy */;
+		};
 		EFFF37D9C2793A23245853F2 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = D35291BD9D5F4979D56A1E9C /* MRT */;
@@ -618,6 +685,44 @@
 /* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
+		A1B2C3D4E5F60718293A4B66 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
+				"CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]" = NO;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.anywherevibe.mrt.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MRT;
+			};
+			name = Debug;
+		};
+		A1B2C3D4E5F60718293A4B67 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				"CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]" = NO;
+				"CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]" = NO;
+				"CODE_SIGN_IDENTITY[sdk=iphonesimulator*]" = "";
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				LD_RUNPATH_SEARCH_PATHS = (
+					"$(inherited)",
+					"@loader_path/Frameworks",
+				);
+				PRODUCT_BUNDLE_IDENTIFIER = com.anywherevibe.mrt.uitests;
+				SDKROOT = iphoneos;
+				TARGETED_DEVICE_FAMILY = "1,2";
+				TEST_TARGET_NAME = MRT;
+			};
+			name = Release;
+		};
 		282318BE811F3C585790A8D4 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
@@ -878,6 +983,15 @@
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
+		A1B2C3D4E5F60718293A4B65 /* Build configuration list for PBXNativeTarget "MRTUITests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				A1B2C3D4E5F60718293A4B66 /* Debug */,
+				A1B2C3D4E5F60718293A4B67 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
 		3D084442B9BC2C86C120B39A /* Build configuration list for PBXNativeTarget "MRTWatch" */ = {
 			isa = XCConfigurationList;
 			buildConfigurations = (

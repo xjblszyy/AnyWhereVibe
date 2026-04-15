@@ -51,6 +51,7 @@ struct GHTabBar<Value: Hashable>: View {
                     .clipShape(RoundedRectangle(cornerRadius: GHRadius.md))
                 }
                 .buttonStyle(.plain)
+                .accessibilityIdentifier("tab.\(item.title.lowercased())")
             }
         }
         .padding(.horizontal, GHSpacing.md)

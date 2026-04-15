@@ -104,6 +104,10 @@ jobs:
         run: |
           IOS_SIMULATOR_ID="${{ steps.simulator.outputs.device_id }}" bash scripts/test-ios.sh
 
+      - name: Run iOS UI smoke
+        run: |
+          IOS_SIMULATOR_ID="${{ steps.simulator.outputs.device_id }}" bash scripts/e2e-ios-ui.sh
+
       - name: Run iOS agent E2E harness
         env:
           IOS_SIMULATOR_ID: ${{ steps.simulator.outputs.device_id }}
