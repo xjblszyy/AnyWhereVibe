@@ -10,7 +10,7 @@ use crate::db::Database;
 
 pub struct DeviceRegistry {
     db: Arc<Database>,
-    online: RwLock<HashMap<String, OnlineDevice>>,
+    online: RwLock<HashMap<DeviceKey, OnlineDevice>>,
 }
 
 #[derive(Clone, Debug)]
@@ -21,6 +21,12 @@ pub struct OnlineDevice {
     pub display_name: String,
     pub ws_tx: mpsc::Sender<Vec<u8>>,
     pub connected_at: Instant,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq, Hash)]
+struct DeviceKey {
+    user_id: i64,
+    device_id: String,
 }
 
 impl DeviceRegistry {
@@ -46,7 +52,7 @@ impl DeviceRegistry {
         self.db
             .upsert_device(user.id, &msg.device_id, msg.device_type, &msg.display_name)?;
 
-        let device_id = msg.device_id.clone();
+        let device_key = DeviceKey::new(user.id, &msg.device_id);
         let online_device = OnlineDevice {
             user_id: user.id,
             device_id: msg.device_id,
@@ -56,7 +62,7 @@ impl DeviceRegistry {
             connected_at: Instant::now(),
         };
 
-        self.online.write().await.insert(device_id, online_device);
+        self.online.write().await.insert(device_key, online_device);
 
         Ok(DeviceRegisterAck {
             success: true,
@@ -64,27 +70,44 @@ impl DeviceRegistry {
         })
     }
 
-    pub async fn unregister(&self, device_id: &str) -> Result<()> {
-        let removed = self.online.write().await.remove(device_id);
+    pub async fn unregister(&self, user_id: i64, device_id: &str) -> Result<()> {
+        let removed = self
+            .online
+            .write()
+            .await
+            .remove(&DeviceKey::new(user_id, device_id));
         if removed.is_some() {
             self.db
-                .update_device_last_seen(device_id, current_timestamp_ms()?)?;
+                .update_device_last_seen(user_id, device_id, current_timestamp_ms()?)?;
         }
         Ok(())
     }
 
     pub async fn list_devices_for_user(&self, user_id: i64) -> Vec<DeviceInfo> {
-        self.online
-            .read()
-            .await
-            .values()
-            .filter(|device| device.user_id == user_id)
-            .map(|device| DeviceInfo {
-                device_id: device.device_id.clone(),
-                device_type: device.device_type as i32,
-                display_name: device.display_name.clone(),
-                is_online: true,
-                last_seen_ms: 0,
+        let persisted = match self.db.list_devices_for_user(user_id) {
+            Ok(devices) => devices,
+            Err(_) => return Vec::new(),
+        };
+        let online = self.online.read().await;
+
+        persisted
+            .into_iter()
+            .map(|device| {
+                let key = DeviceKey::new(device.user_id, &device.device_id);
+                let online_device = online.get(&key);
+
+                DeviceInfo {
+                    device_id: device.device_id,
+                    device_type: online_device
+                        .map(|device| device.device_type as i32)
+                        .unwrap_or(device.device_type),
+                    display_name: online_device
+                        .map(|device| device.display_name.clone())
+                        .or(device.display_name)
+                        .unwrap_or_default(),
+                    is_online: online_device.is_some(),
+                    last_seen_ms: device.last_seen_ms.unwrap_or(0),
+                }
             })
             .collect()
     }
@@ -97,20 +120,32 @@ impl DeviceRegistry {
         self.online
             .read()
             .await
-            .get(target_device_id)
-            .filter(|device| device.user_id == requester_user_id)
+            .get(&DeviceKey::new(requester_user_id, target_device_id))
             .cloned()
     }
 
-    pub async fn get_sender(&self, device_id: &str) -> Option<mpsc::Sender<Vec<u8>>> {
+    pub async fn get_sender_for_user(
+        &self,
+        requester_user_id: i64,
+        device_id: &str,
+    ) -> Option<mpsc::Sender<Vec<u8>>> {
         self.online
             .read()
             .await
-            .get(device_id)
+            .get(&DeviceKey::new(requester_user_id, device_id))
             .map(|device| device.ws_tx.clone())
     }
 }
 
 fn current_timestamp_ms() -> Result<u64> {
     Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis() as u64)
+}
+
+impl DeviceKey {
+    fn new(user_id: i64, device_id: &str) -> Self {
+        Self {
+            user_id,
+            device_id: device_id.to_string(),
+        }
+    }
 }

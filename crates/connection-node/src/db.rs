@@ -4,7 +4,7 @@ use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Result};
-use rusqlite::{params, Connection};
+use rusqlite::{params, Connection, OptionalExtension};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct UserRecord {
@@ -138,8 +138,7 @@ impl Database {
             r#"
             INSERT INTO devices (user_id, device_id, device_type, display_name, last_seen)
             VALUES (?1, ?2, ?3, ?4, NULL)
-            ON CONFLICT(device_id) DO UPDATE SET
-                user_id = excluded.user_id,
+            ON CONFLICT(user_id, device_id) DO UPDATE SET
                 device_type = excluded.device_type,
                 display_name = excluded.display_name
             "#,
@@ -148,14 +147,21 @@ impl Database {
         Ok(())
     }
 
-    pub fn update_device_last_seen(&self, device_id: &str, last_seen_ms: u64) -> Result<()> {
+    pub fn update_device_last_seen(
+        &self,
+        user_id: i64,
+        device_id: &str,
+        last_seen_ms: u64,
+    ) -> Result<()> {
         let connection = self.connection()?;
         let changed = connection.execute(
-            "UPDATE devices SET last_seen = ?1 WHERE device_id = ?2",
-            params![last_seen_ms as i64, device_id],
+            "UPDATE devices SET last_seen = ?1 WHERE user_id = ?2 AND device_id = ?3",
+            params![last_seen_ms as i64, user_id, device_id],
         )?;
         if changed == 0 {
-            return Err(anyhow!("device '{device_id}' not found"));
+            return Err(anyhow!(
+                "device '{device_id}' for user '{user_id}' not found"
+            ));
         }
         Ok(())
     }
@@ -197,17 +203,9 @@ impl Database {
                 active BOOLEAN DEFAULT 1,
                 created_at INTEGER NOT NULL
             );
-
-            CREATE TABLE IF NOT EXISTS devices (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER REFERENCES users(id),
-                device_id TEXT UNIQUE NOT NULL,
-                device_type INTEGER NOT NULL,
-                display_name TEXT,
-                last_seen INTEGER
-            );
             "#,
         )?;
+        ensure_devices_schema(&connection)?;
         Ok(())
     }
 
@@ -220,6 +218,66 @@ impl Database {
 
 fn current_timestamp() -> Result<i64> {
     Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
+}
+
+fn ensure_devices_schema(connection: &Connection) -> Result<()> {
+    let table_sql = connection
+        .query_row(
+            "SELECT sql FROM sqlite_master WHERE type = 'table' AND name = 'devices'",
+            [],
+            |row| row.get::<_, String>(0),
+        )
+        .optional()?;
+
+    match table_sql {
+        None => {
+            connection.execute_batch(
+                r#"
+                CREATE TABLE devices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER REFERENCES users(id),
+                    device_id TEXT NOT NULL,
+                    device_type INTEGER NOT NULL,
+                    display_name TEXT,
+                    last_seen INTEGER
+                );
+
+                CREATE UNIQUE INDEX idx_devices_user_device ON devices(user_id, device_id);
+                "#,
+            )?;
+        }
+        Some(sql) if sql.contains("device_id TEXT UNIQUE NOT NULL") => {
+            connection.execute_batch(
+                r#"
+                ALTER TABLE devices RENAME TO devices_legacy;
+
+                CREATE TABLE devices (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    user_id INTEGER REFERENCES users(id),
+                    device_id TEXT NOT NULL,
+                    device_type INTEGER NOT NULL,
+                    display_name TEXT,
+                    last_seen INTEGER
+                );
+
+                CREATE UNIQUE INDEX idx_devices_user_device ON devices(user_id, device_id);
+
+                INSERT INTO devices (id, user_id, device_id, device_type, display_name, last_seen)
+                SELECT id, user_id, device_id, device_type, display_name, last_seen
+                FROM devices_legacy;
+
+                DROP TABLE devices_legacy;
+                "#,
+            )?;
+        }
+        Some(_) => {
+            connection.execute_batch(
+                "CREATE UNIQUE INDEX IF NOT EXISTS idx_devices_user_device ON devices(user_id, device_id);",
+            )?;
+        }
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
