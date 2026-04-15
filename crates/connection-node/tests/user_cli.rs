@@ -1,5 +1,8 @@
 use connection_node::db::Database;
 use connection_node::user_cli::{add_user, list_users, reset_user, revoke_user};
+use std::fs;
+use std::process::Command;
+use tempfile::tempdir;
 
 #[test]
 fn add_user_returns_token_with_prefix_and_persists() {
@@ -48,4 +51,69 @@ fn revoke_and_reset_update_state_and_token() {
     assert_eq!(users.len(), 1);
     assert!(users[0].active);
     assert_eq!(users[0].token, refreshed);
+}
+
+#[test]
+fn global_config_path_is_used_by_user_subcommands() {
+    let dir = tempdir().expect("tempdir");
+    let db_path = dir.path().join("custom-node.db");
+    let config_path = dir.path().join("connection-node.toml");
+    fs::write(
+        &config_path,
+        format!(
+            r#"
+[server]
+listen_addr = "127.0.0.1:9443"
+mode = "self-hosted"
+
+[storage]
+type = "sqlite"
+path = "{}"
+
+[log]
+level = "info"
+"#,
+            db_path.display()
+        ),
+    )
+    .expect("write config");
+
+    let add = Command::new(env!("CARGO_BIN_EXE_connection-node"))
+        .args([
+            "user",
+            "add",
+            "--name",
+            "ming",
+            "--config",
+            config_path.to_str().expect("utf-8 path"),
+        ])
+        .output()
+        .expect("run add");
+
+    assert!(
+        add.status.success(),
+        "add failed: stdout={}\nstderr={}",
+        String::from_utf8_lossy(&add.stdout),
+        String::from_utf8_lossy(&add.stderr)
+    );
+
+    let list = Command::new(env!("CARGO_BIN_EXE_connection-node"))
+        .args([
+            "user",
+            "list",
+            "--config",
+            config_path.to_str().expect("utf-8 path"),
+        ])
+        .output()
+        .expect("run list");
+
+    assert!(
+        list.status.success(),
+        "list failed: stdout={}\nstderr={}",
+        String::from_utf8_lossy(&list.stdout),
+        String::from_utf8_lossy(&list.stderr)
+    );
+    let stdout = String::from_utf8_lossy(&list.stdout);
+    assert!(stdout.contains("ming"), "list output was: {stdout}");
+    assert!(stdout.contains("mrt_ak_"), "list output was: {stdout}");
 }

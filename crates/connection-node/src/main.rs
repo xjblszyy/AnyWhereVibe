@@ -12,20 +12,16 @@ use tracing_subscriber::EnvFilter;
 #[command(name = "connection-node")]
 #[command(about = "Connection node bootstrap and user management CLI")]
 struct Cli {
+    #[arg(long, global = true)]
+    config: Option<PathBuf>,
     #[command(subcommand)]
     command: Command,
 }
 
 #[derive(Debug, Subcommand)]
 enum Command {
-    Run(RunCommand),
+    Run,
     User(UserCommand),
-}
-
-#[derive(Debug, Args)]
-struct RunCommand {
-    #[arg(long)]
-    config: Option<PathBuf>,
 }
 
 #[derive(Debug, Args)]
@@ -51,17 +47,15 @@ struct UserNameArg {
 #[tokio::main]
 async fn main() -> Result<()> {
     let cli = Cli::parse();
+    let config = AppConfig::load(cli.config.as_deref())?;
+    init_tracing(&config.log.level);
 
     match cli.command {
-        Command::Run(command) => {
-            let config = AppConfig::load(command.config.as_deref())?;
-            init_tracing(&config.log.level);
+        Command::Run => {
             let _db = open_database(&config)?;
             server::run(&config).await?;
         }
         Command::User(command) => {
-            let config = AppConfig::load(None)?;
-            init_tracing(&config.log.level);
             let db = open_database(&config)?;
 
             match command.command {

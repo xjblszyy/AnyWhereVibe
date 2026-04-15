@@ -1,6 +1,6 @@
 use std::fs;
 use std::path::Path;
-use std::sync::Mutex;
+use std::sync::{Mutex, MutexGuard};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use anyhow::{anyhow, Result};
@@ -48,7 +48,7 @@ impl Database {
 
     pub fn insert_user(&self, name: &str, token: &str) -> Result<()> {
         let now = current_timestamp()?;
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.connection()?;
         connection.execute(
             "INSERT INTO users (name, token, active, created_at) VALUES (?1, ?2, 1, ?3)",
             params![name, token, now],
@@ -57,7 +57,7 @@ impl Database {
     }
 
     pub fn list_users(&self) -> Result<Vec<UserRecord>> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.connection()?;
         let mut statement = connection
             .prepare("SELECT id, name, token, active, created_at FROM users ORDER BY name ASC")?;
         let rows = statement.query_map([], |row| {
@@ -75,7 +75,7 @@ impl Database {
     }
 
     pub fn revoke_user(&self, name: &str) -> Result<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.connection()?;
         let changed =
             connection.execute("UPDATE users SET active = 0 WHERE name = ?1", params![name])?;
         if changed == 0 {
@@ -85,7 +85,7 @@ impl Database {
     }
 
     pub fn reset_user_token(&self, name: &str, token: &str) -> Result<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.connection()?;
         let changed = connection.execute(
             "UPDATE users SET token = ?1, active = 1 WHERE name = ?2",
             params![token, name],
@@ -97,7 +97,7 @@ impl Database {
     }
 
     fn initialize(&self) -> Result<()> {
-        let connection = self.connection.lock().expect("database mutex poisoned");
+        let connection = self.connection()?;
         connection.execute_batch(
             r#"
             CREATE TABLE IF NOT EXISTS users (
@@ -120,8 +120,34 @@ impl Database {
         )?;
         Ok(())
     }
+
+    fn connection(&self) -> Result<MutexGuard<'_, Connection>> {
+        self.connection
+            .lock()
+            .map_err(|_| anyhow!("database mutex poisoned"))
+    }
 }
 
 fn current_timestamp() -> Result<i64> {
     Ok(SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs() as i64)
+}
+
+#[cfg(test)]
+mod tests {
+    use std::panic::{catch_unwind, AssertUnwindSafe};
+
+    use super::Database;
+
+    #[test]
+    fn poisoned_mutex_returns_error_instead_of_panicking() {
+        let db = Database::open_in_memory().expect("open db");
+
+        let _ = catch_unwind(AssertUnwindSafe(|| {
+            let _guard = db.connection.lock().expect("lock");
+            panic!("poison mutex");
+        }));
+
+        let err = db.list_users().expect_err("poison should return an error");
+        assert!(err.to_string().contains("database mutex poisoned"));
+    }
 }
