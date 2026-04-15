@@ -21,6 +21,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.unit.dp
 import com.mrt.app.designsystem.components.GHBanner
 import com.mrt.app.designsystem.components.GHBannerTone
@@ -147,7 +148,9 @@ fun ChatScreen(
                             value = viewModel.inputText,
                             onValueChange = { viewModel.inputText = it },
                             placeholder = viewModel.inputAssistiveMessage ?: "Send a prompt to the active session",
-                            modifier = Modifier.weight(1f),
+                            modifier = Modifier
+                                .weight(1f)
+                                .testTag("chatComposerInput"),
                             minLines = 2,
                         )
                         GHButton(
@@ -156,7 +159,9 @@ fun ChatScreen(
                             style = GHButtonStyle.Primary,
                             icon = Icons.AutoMirrored.Outlined.Send,
                             enabled = viewModel.canSendPrompt,
-                            modifier = Modifier.padding(top = 4.dp),
+                            modifier = Modifier
+                                .padding(top = 4.dp)
+                                .testTag("chatSendButton"),
                         )
                     }
 

@@ -2,8 +2,8 @@ package com.mrt.app.features.chat
 
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
-import androidx.compose.ui.test.hasSetTextAction
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -35,6 +35,7 @@ class ChatScreenInstrumentedTest {
         val sessionViewModel = SessionViewModel(
             initialSessions = listOf(session("session-1", "Main Session")),
         )
+        chatViewModel.activeSessionId = sessionViewModel.activeSessionId
 
         composeRule.setContent {
             MRTTheme(darkTheme = true) {
@@ -56,6 +57,7 @@ class ChatScreenInstrumentedTest {
         val sessionViewModel = SessionViewModel(
             initialSessions = listOf(session("session-1", "Main Session")),
         )
+        chatViewModel.activeSessionId = sessionViewModel.activeSessionId
 
         composeRule.setContent {
             MRTTheme(darkTheme = true) {
@@ -66,11 +68,12 @@ class ChatScreenInstrumentedTest {
             }
         }
 
-        composeRule.onAllNodes(hasSetTextAction())[0].performTextInput("Ship it")
-        composeRule.onNodeWithText("Send").performClick()
+        composeRule.onNodeWithTag("chatComposerInput").performTextInput("Ship it")
+        composeRule.onNodeWithTag("chatSendButton").performClick()
 
-        composeRule.onNodeWithText("Ship it").assertIsDisplayed()
         composeRule.runOnIdle {
+            assertEquals("session-1", chatViewModel.activeSessionId)
+            assertEquals(true, chatViewModel.messages.any { it.content == "Ship it" })
             assertEquals(listOf("Ship it"), connectionManager.sentPrompts.map { it.prompt })
         }
     }
