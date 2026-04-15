@@ -1,4 +1,5 @@
 @testable import MRT
+import WatchConnectivity
 import XCTest
 
 final class PhoneWatchBridgeTests: XCTestCase {
@@ -176,5 +177,92 @@ final class PhoneWatchBridgeTests: XCTestCase {
 
         XCTAssertEqual(pendingApprovalObject["sessionId"] as? String, "session-1")
         XCTAssertNil(pendingApprovalObject["sessionID"])
+    }
+
+    func testNoReplyReceivePathRoutesApprovalResponse() {
+        var capturedApproval: (String, Bool)?
+        let bridge = PhoneWatchBridge(
+            sessionController: nil,
+            approvalResponder: { approvalID, approved in
+                capturedApproval = (approvalID, approved)
+            },
+            quickActionHandler: { _, _ in false },
+            sessionSelectionHandler: { _ in false }
+        )
+
+        let delegate = bridge as WCSessionDelegate
+        delegate.session?(
+            WCSession.default,
+            didReceiveMessage: [
+                "type": "approval_response",
+                "approvalId": "approval-99",
+                "approved": false,
+            ]
+        )
+
+        XCTAssertEqual(capturedApproval?.0, "approval-99")
+        XCTAssertEqual(capturedApproval?.1, false)
+    }
+
+    func testSyncDoesNotResendUnchangedApprovalRequestInteractively() {
+        let sessionController = MockWatchSessionController(isReachable: true)
+        let bridge = PhoneWatchBridge(
+            sessionController: sessionController,
+            approvalResponder: { _, _ in },
+            quickActionHandler: { _, _ in false },
+            sessionSelectionHandler: { _ in false }
+        )
+        let approval = makeApprovalRequest()
+
+        bridge.sync(
+            snapshot: .init(
+                connectionState: .showingApproval,
+                sessions: [],
+                activeSessionID: nil,
+                lastSummary: "Waiting for approval",
+                pendingApproval: approval
+            )
+        )
+        bridge.sync(
+            snapshot: .init(
+                connectionState: .showingApproval,
+                sessions: [],
+                activeSessionID: nil,
+                lastSummary: "Still waiting",
+                pendingApproval: approval
+            )
+        )
+
+        XCTAssertEqual(sessionController.updatedApplicationContexts.count, 2)
+        XCTAssertEqual(sessionController.sentMessages.count, 1)
+        XCTAssertEqual(sessionController.sentMessages.first?["type"] as? String, "approval_request")
+    }
+}
+
+private final class MockWatchSessionController: WatchSessionControlling {
+    var delegate: WCSessionDelegate?
+    var isReachable: Bool
+    private(set) var activateCallCount = 0
+    private(set) var updatedApplicationContexts: [[String: Any]] = []
+    private(set) var sentMessages: [[String: Any]] = []
+
+    init(isReachable: Bool) {
+        self.isReachable = isReachable
+    }
+
+    func activate() {
+        activateCallCount += 1
+    }
+
+    func updateApplicationContext(_ applicationContext: [String: Any]) throws {
+        updatedApplicationContexts.append(applicationContext)
+    }
+
+    func sendMessage(
+        _ message: [String: Any],
+        replyHandler: (([String: Any]) -> Void)?,
+        errorHandler: ((any Error) -> Void)?
+    ) {
+        sentMessages.append(message)
     }
 }

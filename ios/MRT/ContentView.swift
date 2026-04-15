@@ -119,7 +119,16 @@ struct ContentView: View {
         let sessionSignature = sessionViewModel.sessions
             .map { "\($0.id):\($0.status.rawValue):\($0.lastActiveMs)" }
             .joined(separator: "|")
-        let approvalSignature = chatViewModel.pendingApproval?.approvalID ?? "none"
+        let approvalSignature = if let approval = chatViewModel.pendingApproval {
+            [
+                approval.approvalID,
+                approval.sessionID,
+                approval.description_p,
+                approval.command,
+            ].joined(separator: "|")
+        } else {
+            "none"
+        }
         let activeSessionSignature = sessionViewModel.activeSessionID ?? "none"
         return [
             "\(chatViewModel.connectionState)",

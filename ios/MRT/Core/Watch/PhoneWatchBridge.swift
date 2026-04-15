@@ -75,7 +75,7 @@ final class PhoneWatchBridge: NSObject, ObservableObject, WCSessionDelegate {
     private let quickActionHandler: (QuickAction, String) -> Bool
     private let sessionSelectionHandler: (String) -> Bool
     private let encoder = JSONEncoder()
-    private var lastPublishedApprovalID: String?
+    private var lastPublishedApproval: ApprovalPayload?
 
     init(
         sessionController: WatchSessionControlling? = PhoneWatchBridge.defaultSessionController(),
@@ -187,34 +187,36 @@ final class PhoneWatchBridge: NSObject, ObservableObject, WCSessionDelegate {
         replyHandler(["received": true, "handled": handled])
     }
 
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        _ = handleWatchMessage(message)
+    }
+
     private func publishInteractiveEventsIfNeeded(snapshot: Snapshot) {
         guard let sessionController, sessionController.isReachable else {
             return
         }
 
-        let approvalID = snapshot.pendingApproval?.approvalID
+        let approvalPayload = snapshot.pendingApproval.map(ApprovalPayload.init)
         defer {
-            lastPublishedApprovalID = approvalID
+            lastPublishedApproval = approvalPayload
         }
 
-        switch (lastPublishedApprovalID, snapshot.pendingApproval) {
-        case let (oldID?, nil) where !oldID.isEmpty:
+        switch (lastPublishedApproval, approvalPayload) {
+        case (.some, nil):
             sessionController.sendMessage(["type": "approval_cleared"], replyHandler: nil, errorHandler: nil)
-        case let (_, approval?):
-            sessionController.sendMessage(
-                [
-                    "type": "approval_request",
-                    "approvalId": approval.approvalID,
-                    "sessionId": approval.sessionID,
-                    "title": "Permission",
-                    "description": approval.description_p,
-                    "command": approval.command,
-                ],
-                replyHandler: nil,
-                errorHandler: nil
-            )
-        case (nil, nil):
-            break
+        case let (previousApproval, currentApproval?) where previousApproval != currentApproval:
+            var message: [String: Any] = [
+                "type": "approval_request",
+                "approvalId": currentApproval.id,
+                "title": currentApproval.title,
+                "description": currentApproval.description,
+                "command": currentApproval.command,
+            ]
+            if let sessionID = currentApproval.sessionID {
+                message["sessionId"] = sessionID
+            }
+
+            sessionController.sendMessage(message, replyHandler: nil, errorHandler: nil)
         default:
             break
         }

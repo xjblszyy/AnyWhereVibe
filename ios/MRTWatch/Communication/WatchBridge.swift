@@ -78,7 +78,7 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
         error: Error?
     ) {
         DispatchQueue.main.async {
-            self.currentState.isConnected = error == nil && activationState == .activated
+            self.currentState.isConnected = error == nil && activationState == .activated && session.isReachable
         }
     }
 
@@ -92,7 +92,7 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
         DispatchQueue.main.async {
             if let data = applicationContext["watchState"] as? Data,
                let state = try? JSONDecoder().decode(WatchState.self, from: data) {
-                self.currentState = state
+                self.applyWatchState(state, isConnected: session.isReachable)
             }
 
             if let data = applicationContext["sessions"] as? Data,
@@ -109,27 +109,19 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
         }
     }
 
+    func session(_ session: WCSession, didReceiveMessage message: [String: Any]) {
+        DispatchQueue.main.async {
+            self.handleIncomingMessage(message, isConnected: session.isReachable)
+        }
+    }
+
     func session(
         _ session: WCSession,
         didReceiveMessage message: [String: Any],
         replyHandler: @escaping ([String: Any]) -> Void
     ) {
         DispatchQueue.main.async {
-            if let type = message["type"] as? String {
-                switch type {
-                case "approval_request":
-                    self.pendingApproval = ApprovalInfo(from: message)
-                case "approval_cleared":
-                    self.pendingApproval = nil
-                case "status_update":
-                    self.applyStatusUpdate(message)
-                case "session_list":
-                    self.applySessionList(message)
-                default:
-                    break
-                }
-            }
-
+            self.handleIncomingMessage(message, isConnected: session.isReachable)
             replyHandler(["received": true])
         }
     }
@@ -154,8 +146,6 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
             upsertSession(session)
             currentState.activeSession = session
         }
-
-        currentState.isConnected = true
     }
 
     private func applySessionList(_ message: [String: Any]) {
@@ -208,6 +198,32 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
             sessions[index] = session
         } else {
             sessions.append(session)
+        }
+    }
+
+    private func applyWatchState(_ state: WatchState, isConnected: Bool) {
+        currentState = state
+        currentState.isConnected = isConnected
+    }
+
+    private func handleIncomingMessage(_ message: [String: Any], isConnected: Bool) {
+        currentState.isConnected = isConnected
+
+        guard let type = message["type"] as? String else {
+            return
+        }
+
+        switch type {
+        case "approval_request":
+            pendingApproval = ApprovalInfo(from: message)
+        case "approval_cleared":
+            pendingApproval = nil
+        case "status_update":
+            applyStatusUpdate(message)
+        case "session_list":
+            applySessionList(message)
+        default:
+            break
         }
     }
 }
