@@ -14,6 +14,7 @@
 		1B6709DAEDCF50C639E8B6E6 /* ProtobufCodecTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 040DD0E799CA9B15C5E6D1C1 /* ProtobufCodecTests.swift */; };
 		1C641D57DE08BFF183A68677 /* ConnectionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = EC3846BEBEE1FD741159E462 /* ConnectionManager.swift */; };
 		1D29F23983B770D698952084 /* GHList.swift in Sources */ = {isa = PBXBuildFile; fileRef = B25635CCB34004E7AE5CCFE8 /* GHList.swift */; };
+		25300D21989D948A34BA7194 /* AgentE2ETests.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBAE17EE2962D5AAA98EE751 /* AgentE2ETests.swift */; };
 		27EC2994A73DF0D1570389BB /* ApprovalBannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08A1B51E268FF91CBE1EA9C4 /* ApprovalBannerView.swift */; };
 		2BCD0A4041414A215BCC0B33 /* SessionModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA037CD5533D01AF723A1655 /* SessionModel.swift */; };
 		307ABD4A6DFA5B8AAFE19405 /* SessionRowView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6227CA58DAC40361BD2BD8C7 /* SessionRowView.swift */; };
@@ -94,6 +95,7 @@
 		C2779AF339442D54F7F4C69C /* GHDiffView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GHDiffView.swift; sourceTree = "<group>"; };
 		C8D1818FDB75A8129371DD3E /* WebSocketClient.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WebSocketClient.swift; sourceTree = "<group>"; };
 		D9CEF20B1FB23095201ADF18 /* Theme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Theme.swift; sourceTree = "<group>"; };
+		DBAE17EE2962D5AAA98EE751 /* AgentE2ETests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentE2ETests.swift; sourceTree = "<group>"; };
 		DE7A8E1BB47D23FDE6811D72 /* SessionViewModel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionViewModel.swift; sourceTree = "<group>"; };
 		EB46E6CC238B456D67013222 /* ConnectionStatusBar.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionStatusBar.swift; sourceTree = "<group>"; };
 		EC3846BEBEE1FD741159E462 /* ConnectionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConnectionManager.swift; sourceTree = "<group>"; };
@@ -191,6 +193,7 @@
 			isa = PBXGroup;
 			children = (
 				82B33F09CE7BF2829E283E9B /* Features */,
+				A3CFA1A24E6EB0EEF8729C5F /* Integration */,
 				E50262BDA31E1FA75533273D /* Network */,
 				A0ED6779CE27AC44150535E8 /* TestSupport */,
 			);
@@ -248,6 +251,14 @@
 				17DFC2B06CC4934022FC1585 /* GHTabBar.swift */,
 			);
 			path = Components;
+			sourceTree = "<group>";
+		};
+		A3CFA1A24E6EB0EEF8729C5F /* Integration */ = {
+			isa = PBXGroup;
+			children = (
+				DBAE17EE2962D5AAA98EE751 /* AgentE2ETests.swift */,
+			);
+			path = Integration;
 			sourceTree = "<group>";
 		};
 		A7CB8CE9F3F98364A0707DB1 /* Models */ = {
@@ -407,6 +418,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				25300D21989D948A34BA7194 /* AgentE2ETests.swift in Sources */,
 				81684B204F1B78D992FFADFC /* ChatViewModelTests.swift in Sources */,
 				0C4436750731AA55A30ED64F /* ConnectionManagerTests.swift in Sources */,
 				C06E0E92FD72D6559BA28BB2 /* MessageDispatcherTests.swift in Sources */,

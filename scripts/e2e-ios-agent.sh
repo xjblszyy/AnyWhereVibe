@@ -7,13 +7,13 @@ original_home="${HOME}"
 
 host="${MRT_E2E_HOST:-127.0.0.1}"
 port="${MRT_E2E_PORT:-9876}"
-test_filter="${MRT_E2E_TEST_FILTER:-AgentE2ETests/testMockAgentHappyPathStreamsOutputAndResumesAfterApproval}"
+ios_test_filter="${MRT_E2E_TEST_FILTER:-MRTTests/AgentE2ETests}"
 
 workspace_dir="$(mktemp -d "${TMPDIR:-/tmp}/mrt-ios-e2e.XXXXXX")"
-package_dir="${workspace_dir}/package"
 agent_home="${workspace_dir}/agent-home"
 agent_log="${workspace_dir}/agent.log"
 agent_pid=""
+ios_simulator_id="${IOS_SIMULATOR_ID:-}"
 
 cleanup() {
   if [[ -n "${agent_pid}" ]]; then
@@ -62,67 +62,73 @@ wait_for_port() {
 }
 
 require_tool cargo
-require_tool swift
+require_tool xcodebuild
+require_tool xcrun
 
-mkdir -p "${package_dir}/Sources/MRT" "${package_dir}/Tests/MRTTests/Integration"
+resolve_simulator_id() {
+  if [[ -n "${ios_simulator_id}" ]]; then
+    echo "${ios_simulator_id}"
+    return 0
+  fi
+
+  local booted_iphone_id
+  booted_iphone_id="$(
+    xcrun simctl list devices booted available \
+      | awk -F '[()]' '/iPhone/ {print $2; exit}'
+  )"
+  if [[ -n "${booted_iphone_id}" ]]; then
+    echo "${booted_iphone_id}"
+    return 0
+  fi
+
+  local available_iphone_id
+  available_iphone_id="$(
+    xcrun simctl list devices available \
+      | awk -F '[()]' '/iPhone/ {print $2; exit}'
+  )"
+  if [[ -n "${available_iphone_id}" ]]; then
+    echo "${available_iphone_id}"
+    return 0
+  fi
+
+  echo "error: failed to locate an available iPhone simulator. Set IOS_SIMULATOR_ID explicitly." >&2
+  return 1
+}
+
+boot_simulator() {
+  local simulator_id="$1"
+  xcrun simctl boot "${simulator_id}" >/dev/null 2>&1 || true
+  xcrun simctl bootstatus "${simulator_id}" -b
+}
+
 mkdir -p "${agent_home}"
-
-cat > "${package_dir}/Package.swift" <<'EOF'
-// swift-tools-version: 5.10
-import PackageDescription
-
-let package = Package(
-    name: "MRTE2EHarness",
-    platforms: [.macOS(.v13)],
-    products: [
-        .library(name: "MRT", targets: ["MRT"]),
-    ],
-    dependencies: [
-        .package(url: "https://github.com/apple/swift-protobuf.git", exact: "1.36.1"),
-    ],
-    targets: [
-        .target(
-            name: "MRT",
-            dependencies: [
-                .product(name: "SwiftProtobuf", package: "swift-protobuf"),
-            ],
-            path: "Sources/MRT"
-        ),
-        .testTarget(
-            name: "MRTTests",
-            dependencies: ["MRT"],
-            path: "Tests/MRTTests"
-        ),
-    ]
-)
-EOF
-
-for source in \
-  ios/MRT/Core/Models/ChatMessage.swift \
-  ios/MRT/Core/Models/SessionModel.swift \
-  ios/MRT/Core/Network/ConnectionManager.swift \
-  ios/MRT/Core/Network/MessageDispatcher.swift \
-  ios/MRT/Core/Network/ProtobufCodec.swift \
-  ios/MRT/Core/Network/WebSocketClient.swift \
-  ios/MRT/Core/Proto/Mrt.pb.swift
-do
-  ln -s "${repo_root}/${source}" "${package_dir}/Sources/MRT/$(basename "${source}")"
-done
-
-ln -s \
-  "${repo_root}/ios/MRTTests/Integration/AgentE2ETests.swift" \
-  "${package_dir}/Tests/MRTTests/Integration/AgentE2ETests.swift"
+ios_simulator_id="$(resolve_simulator_id)"
+boot_simulator "${ios_simulator_id}"
 
 (
   cd "${repo_root}"
   HOME="${agent_home}" \
   CARGO_HOME="${CARGO_HOME:-${original_home}/.cargo}" \
   RUSTUP_HOME="${RUSTUP_HOME:-${original_home}/.rustup}" \
-  cargo run -p agent -- --mock --listen "127.0.0.1:${port}"
+  cargo run -p agent -- --mock --listen "${host}:${port}"
 ) >"${agent_log}" 2>&1 &
 agent_pid=$!
 
-wait_for_port "127.0.0.1" "${port}"
+wait_for_port "${host}" "${port}"
 
-cd "${package_dir}"
-MRT_E2E_HOST="${host}" MRT_E2E_PORT="${port}" swift test --filter "${test_filter}"
+cd "${repo_root}"
+if ! MRT_E2E_HOST="${host}" \
+  MRT_E2E_PORT="${port}" \
+  SIMCTL_CHILD_MRT_E2E_HOST="${host}" \
+  SIMCTL_CHILD_MRT_E2E_PORT="${port}" \
+  xcodebuild \
+    -project ios/MRT.xcodeproj \
+    -scheme MRT \
+    -destination "id=${ios_simulator_id}" \
+    CODE_SIGNING_ALLOWED=NO \
+    CODE_SIGNING_REQUIRED=NO \
+    test \
+    -only-testing:"${ios_test_filter}"; then
+  cat "${agent_log}" >&2
+  exit 1
+fi
