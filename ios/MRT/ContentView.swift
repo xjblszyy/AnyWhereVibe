@@ -60,7 +60,6 @@ struct ContentView: View {
                 },
                 sessionSelectionHandler: { sessionID in
                     sessionViewModel.selectSession(id: sessionID)
-                    return true
                 }
             )
         )

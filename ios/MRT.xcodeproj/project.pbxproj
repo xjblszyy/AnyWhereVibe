@@ -626,6 +626,7 @@
 				"CODE_SIGNING_REQUIRED[sdk=watchsimulator*]" = NO;
 				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.anywherevibe.mrt;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anywherevibe.mrt.watch;
 				PRODUCT_NAME = MRTWatch;
 				SDKROOT = watchos;
@@ -795,6 +796,7 @@
 				"CODE_SIGNING_REQUIRED[sdk=watchsimulator*]" = NO;
 				"CODE_SIGN_IDENTITY[sdk=watchsimulator*]" = "";
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_WKCompanionAppBundleIdentifier = com.anywherevibe.mrt;
 				PRODUCT_BUNDLE_IDENTIFIER = com.anywherevibe.mrt.watch;
 				PRODUCT_NAME = MRTWatch;
 				SDKROOT = watchos;

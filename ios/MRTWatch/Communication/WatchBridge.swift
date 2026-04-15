@@ -47,6 +47,20 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
     }
 
     func selectSession(withID sessionID: String) {
+        syncSelection(withID: sessionID)
+
+        guard WCSession.isSupported() else { return }
+        let session = WCSession.default
+        guard session.isReachable else { return }
+
+        session.sendMessage(
+            ["type": "select_session", "sessionId": sessionID],
+            replyHandler: nil,
+            errorHandler: nil
+        )
+    }
+
+    func syncSelection(withID sessionID: String) {
         DispatchQueue.main.async {
             guard let session = self.sessions.first(where: { $0.id == sessionID }) else {
                 return
@@ -89,6 +103,8 @@ final class WatchBridge: NSObject, ObservableObject, WCSessionDelegate {
             if let data = applicationContext["pendingApproval"] as? Data,
                let approval = try? JSONDecoder().decode(ApprovalInfo.self, from: data) {
                 self.pendingApproval = approval
+            } else {
+                self.pendingApproval = nil
             }
         }
     }

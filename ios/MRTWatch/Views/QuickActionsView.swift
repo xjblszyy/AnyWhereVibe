@@ -6,9 +6,7 @@ struct QuickActionsView: View {
 
     var body: some View {
         List {
-            quickActionButton(title: "Continue", systemImage: "play.fill", color: WatchGH.accentGreen, action: "continue")
             quickActionButton(title: "Cancel", systemImage: "stop.fill", color: WatchGH.accentRed, action: "cancel")
-            quickActionButton(title: "Retry", systemImage: "arrow.clockwise", color: WatchGH.accentBlue, action: "retry")
         }
         .listStyle(.carousel)
     }

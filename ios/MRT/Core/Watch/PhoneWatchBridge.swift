@@ -53,6 +53,14 @@ final class PhoneWatchBridge: NSObject, ObservableObject, WCSessionDelegate {
         let description: String
         let command: String
         let sessionID: String?
+
+        private enum CodingKeys: String, CodingKey {
+            case id
+            case title
+            case description
+            case command
+            case sessionID = "sessionId"
+        }
     }
 
     struct WatchStatePayload: Codable, Equatable {

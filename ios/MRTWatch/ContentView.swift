@@ -42,16 +42,22 @@ struct ContentView: View {
         .onChange(of: bridge.sessions) {
             synchronizeSelection()
         }
+        .onChange(of: bridge.currentState.activeSession?.id) { _, newValue in
+            synchronizeSelection(preferredSessionID: newValue)
+        }
     }
 
     private var shouldShowOffline: Bool {
         !bridge.currentState.isConnected && bridge.pendingApproval == nil && bridge.sessions.isEmpty
     }
 
-    private func synchronizeSelection() {
-        if let selectedSessionID,
-           bridge.sessions.contains(where: { $0.id == selectedSessionID }) {
-            bridge.selectSession(withID: selectedSessionID)
+    private func synchronizeSelection(preferredSessionID: String? = nil) {
+        let targetSessionID = preferredSessionID ?? bridge.currentState.activeSession?.id ?? selectedSessionID
+
+        if let targetSessionID,
+           bridge.sessions.contains(where: { $0.id == targetSessionID }) {
+            selectedSessionID = targetSessionID
+            bridge.syncSelection(withID: targetSessionID)
             return
         }
 
@@ -61,6 +67,6 @@ struct ContentView: View {
         }
 
         selectedSessionID = firstSession.id
-        bridge.selectSession(withID: firstSession.id)
+        bridge.syncSelection(withID: firstSession.id)
     }
 }

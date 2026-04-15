@@ -150,4 +150,31 @@ final class PhoneWatchBridgeTests: XCTestCase {
         XCTAssertTrue(handled)
         XCTAssertEqual(selectedSessionID, "session-2")
     }
+
+    func testMakeApplicationContextEncodesPendingApprovalUsingSessionIdKey() throws {
+        let bridge = PhoneWatchBridge(
+            sessionController: nil,
+            approvalResponder: { _, _ in },
+            quickActionHandler: { _, _ in false },
+            sessionSelectionHandler: { _ in false }
+        )
+
+        let context = try bridge.makeApplicationContext(
+            snapshot: .init(
+                connectionState: .connected,
+                sessions: [],
+                activeSessionID: nil,
+                lastSummary: nil,
+                pendingApproval: makeApprovalRequest()
+            )
+        )
+
+        let pendingApprovalData = try XCTUnwrap(context["pendingApproval"] as? Data)
+        let pendingApprovalObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: pendingApprovalData) as? [String: Any]
+        )
+
+        XCTAssertEqual(pendingApprovalObject["sessionId"] as? String, "session-1")
+        XCTAssertNil(pendingApprovalObject["sessionID"])
+    }
 }

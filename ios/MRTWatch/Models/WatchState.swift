@@ -74,6 +74,15 @@ struct ApprovalInfo: Identifiable, Codable, Hashable {
     let command: String
     let sessionId: String?
 
+    private enum CodingKeys: String, CodingKey {
+        case id
+        case title
+        case description
+        case command
+        case sessionId
+        case sessionID
+    }
+
     init(
         id: String,
         title: String,
@@ -100,6 +109,29 @@ struct ApprovalInfo: Identifiable, Codable, Hashable {
             command: message["command"] as? String ?? "",
             sessionId: message["sessionId"] as? String
         )
+    }
+
+    init(from decoder: any Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+
+        id = try container.decode(String.self, forKey: .id)
+        title = try container.decode(String.self, forKey: .title)
+        description = try container.decode(String.self, forKey: .description)
+        command = try container.decode(String.self, forKey: .command)
+        if let decodedSessionId = try container.decodeIfPresent(String.self, forKey: .sessionId) {
+            sessionId = decodedSessionId
+        } else {
+            sessionId = try container.decodeIfPresent(String.self, forKey: .sessionID)
+        }
+    }
+
+    func encode(to encoder: any Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(title, forKey: .title)
+        try container.encode(description, forKey: .description)
+        try container.encode(command, forKey: .command)
+        try container.encodeIfPresent(sessionId, forKey: .sessionId)
     }
 }
 

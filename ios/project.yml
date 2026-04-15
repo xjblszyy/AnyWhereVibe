@@ -74,6 +74,7 @@ targets:
         PRODUCT_BUNDLE_IDENTIFIER: com.anywherevibe.mrt.watch
         PRODUCT_NAME: MRTWatch
         GENERATE_INFOPLIST_FILE: YES
+        INFOPLIST_KEY_WKCompanionAppBundleIdentifier: com.anywherevibe.mrt
         TARGETED_DEVICE_FAMILY: "4"
         CODE_SIGN_IDENTITY[sdk=watchsimulator*]: ""
         CODE_SIGNING_ALLOWED[sdk=watchsimulator*]: NO
