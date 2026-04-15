@@ -23,6 +23,23 @@ final class MessageDispatcherTests: XCTestCase {
         XCTAssertEqual(dispatcher.state, .showingApproval)
     }
 
+    func testDispatcherClearsApprovalWhenItsSessionDisappearsFromSessionList() {
+        let dispatcher = MessageDispatcher()
+
+        dispatcher.apply(makeApprovalRequestEnvelope())
+        dispatcher.apply(makeSessionListEnvelope())
+        XCTAssertEqual(dispatcher.pendingApproval?.approvalID, "approval-1")
+
+        var envelope = Mrt_Envelope()
+        envelope.event = .with { event in
+            event.sessionList = Mrt_SessionListUpdate()
+        }
+        dispatcher.apply(envelope)
+
+        XCTAssertNil(dispatcher.pendingApproval)
+        XCTAssertEqual(dispatcher.state, .connected)
+    }
+
     func testDispatcherUpdatesSessionsFromSessionListEvent() {
         let dispatcher = MessageDispatcher()
 

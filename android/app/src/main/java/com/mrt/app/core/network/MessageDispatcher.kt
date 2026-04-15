@@ -28,8 +28,14 @@ class MessageDispatcher {
                 state = ConnectionState.SHOWING_APPROVAL
             }
             Mrt.AgentEvent.EvtCase.STATUS_UPDATE -> applyStatus(envelope.event.statusUpdate.status)
-            Mrt.AgentEvent.EvtCase.SESSION_LIST ->
+            Mrt.AgentEvent.EvtCase.SESSION_LIST -> {
                 sessions = envelope.event.sessionList.sessionsList.map(SessionModel::fromProto)
+                pendingApproval?.sessionId?.let { sessionId ->
+                    if (sessions.none { it.id == sessionId }) {
+                        clearPendingApproval()
+                    }
+                }
+            }
 
             Mrt.AgentEvent.EvtCase.AGENT_INFO -> {
                 agentInfo = envelope.event.agentInfo

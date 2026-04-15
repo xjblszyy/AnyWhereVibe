@@ -22,6 +22,10 @@ final class MessageDispatcher {
             applyStatus(update.status)
         case .sessionList(let update):
             sessions = update.sessions.map(SessionModel.init)
+            if let pendingApproval,
+               sessions.contains(where: { $0.id == pendingApproval.sessionID }) == false {
+                clearPendingApproval()
+            }
         case .agentInfo(let info):
             agentInfo = info
             state = .connected

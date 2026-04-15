@@ -111,6 +111,7 @@ jobs:
             -only-testing:MRTTests/SettingsValidationTests \
             -only-testing:MRTTests/ChatViewModelTests \
             -only-testing:MRTTests/ConnectionManagerTests \
+            -only-testing:MRTTests/SessionViewModelTests \
             test
 
       - name: Run iOS agent E2E harness

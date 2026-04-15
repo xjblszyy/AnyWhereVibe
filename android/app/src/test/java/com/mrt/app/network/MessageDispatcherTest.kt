@@ -3,6 +3,7 @@ package com.mrt.app.network
 import com.mrt.app.core.models.ChatMessage
 import com.mrt.app.core.network.ConnectionState
 import com.mrt.app.core.network.MessageDispatcher
+import mrt.Mrt
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -27,6 +28,30 @@ class MessageDispatcherTest {
 
         assertEquals("approval-1", dispatcher.pendingApproval?.approvalId)
         assertEquals(ConnectionState.SHOWING_APPROVAL, dispatcher.state)
+    }
+
+    @Test
+    fun dispatcherClearsApprovalWhenItsSessionDisappearsFromSessionList() {
+        val dispatcher = MessageDispatcher()
+
+        dispatcher.apply(makeApprovalRequestEnvelope())
+        dispatcher.apply(makeSessionListEnvelope())
+        assertEquals("approval-1", dispatcher.pendingApproval?.approvalId)
+
+        dispatcher.apply(
+            Mrt.Envelope.newBuilder()
+                .setEvent(
+                    Mrt.AgentEvent.newBuilder()
+                        .setSessionList(
+                            Mrt.SessionListUpdate.newBuilder().build(),
+                        )
+                        .build(),
+                )
+                .build(),
+        )
+
+        assertEquals(null, dispatcher.pendingApproval)
+        assertEquals(ConnectionState.CONNECTED, dispatcher.state)
     }
 
     @Test
