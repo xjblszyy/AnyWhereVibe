@@ -1,9 +1,12 @@
 use std::path::PathBuf;
+use std::sync::Arc;
 
 use anyhow::{bail, Result};
 use clap::{Args, Parser, Subcommand};
 use connection_node::config::{AppConfig, StorageKind};
 use connection_node::db::Database;
+use connection_node::registry::DeviceRegistry;
+use connection_node::router::SessionRouter;
 use connection_node::server;
 use connection_node::user_cli::{add_user, list_users, render_users, reset_user, revoke_user};
 use tracing_subscriber::EnvFilter;
@@ -52,8 +55,10 @@ async fn main() -> Result<()> {
 
     match cli.command {
         Command::Run => {
-            let _db = open_database(&config)?;
-            server::run(&config).await?;
+            let db = Arc::new(open_database(&config)?);
+            let registry = Arc::new(DeviceRegistry::new(Arc::clone(&db)));
+            let router = Arc::new(SessionRouter::new(Arc::clone(&registry)));
+            server::run(&config, registry, router).await?;
         }
         Command::User(command) => {
             let db = open_database(&config)?;

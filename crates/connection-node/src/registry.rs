@@ -70,6 +70,13 @@ impl DeviceRegistry {
         })
     }
 
+    pub fn active_user_id_for_token(&self, token: &str) -> Result<Option<i64>> {
+        Ok(self
+            .db
+            .find_active_user_by_token(token)?
+            .map(|user| user.id))
+    }
+
     pub async fn unregister(&self, user_id: i64, device_id: &str) -> Result<()> {
         let removed = self
             .online
