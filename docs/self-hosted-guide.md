@@ -54,7 +54,11 @@ level = "info"
 Install this config at the path expected by the systemd unit:
 
 ```bash
-sudo install -d -m 0755 /etc/mrt /var/lib/mrt
+sudo groupadd --system mrt || true
+sudo useradd --system --gid mrt --home /var/lib/mrt --create-home --shell /usr/sbin/nologin mrt || true
+sudo install -d -m 0755 -o root -g root /etc/mrt
+sudo install -d -m 0750 -o mrt -g mrt /var/lib/mrt
+sudo install -m 0640 -o root -g mrt /dev/null /etc/mrt/connection-node.toml
 sudo tee /etc/mrt/connection-node.toml >/dev/null <<'EOF'
 [server]
 listen_addr = "0.0.0.0:8443"
@@ -67,7 +71,8 @@ path = "/var/lib/mrt/mrt-node.db"
 [log]
 level = "info"
 EOF
-sudo chmod 0644 /etc/mrt/connection-node.toml
+sudo chown root:mrt /etc/mrt/connection-node.toml
+sudo chmod 0640 /etc/mrt/connection-node.toml
 ```
 
 ## Create App Users and Tokens
@@ -89,10 +94,16 @@ Build image:
 docker build -f deploy/Dockerfile.connection-node -t mrt-connection-node .
 ```
 
-Create host config/data directories:
+The container image pins `mrt` to `UID:GID 10001:10001` (override only if you also adjust host ownership).
+
+Create host config/data directories with matching ownership:
 
 ```bash
-sudo mkdir -p /opt/mrt/config /opt/mrt/data
+MRT_UID=10001
+MRT_GID=10001
+sudo install -d -m 0755 -o root -g root /opt/mrt/config
+sudo install -d -m 0750 -o "${MRT_UID}" -g "${MRT_GID}" /opt/mrt/data
+sudo install -m 0640 -o root -g "${MRT_GID}" /dev/null /opt/mrt/config/connection-node.toml
 sudo tee /opt/mrt/config/connection-node.toml >/dev/null <<'EOF'
 [server]
 listen_addr = "0.0.0.0:8443"
@@ -105,6 +116,8 @@ path = "/var/lib/mrt/mrt-node.db"
 [log]
 level = "info"
 EOF
+sudo chown root:"${MRT_GID}" /opt/mrt/config/connection-node.toml
+sudo chmod 0640 /opt/mrt/config/connection-node.toml
 ```
 
 Run container:
@@ -116,7 +129,7 @@ docker run -d \
   --cap-drop ALL \
   --security-opt no-new-privileges:true \
   -p 8443:8443 \
-  -v /opt/mrt/config:/etc/mrt \
+  -v /opt/mrt/config:/etc/mrt:ro \
   -v /opt/mrt/data:/var/lib/mrt \
   mrt-connection-node
 ```
@@ -135,8 +148,11 @@ Why this Dockerfile uses `debian:bookworm-slim` instead of `scratch`:
 Install binary, config, and service on Linux host:
 
 ```bash
-sudo useradd --system --home /var/lib/mrt --create-home --shell /usr/sbin/nologin mrt || true
-sudo install -d -m 0755 -o mrt -g mrt /etc/mrt /var/lib/mrt
+sudo groupadd --system mrt || true
+sudo useradd --system --gid mrt --home /var/lib/mrt --create-home --shell /usr/sbin/nologin mrt || true
+sudo install -d -m 0755 -o root -g root /etc/mrt
+sudo install -d -m 0750 -o mrt -g mrt /var/lib/mrt
+sudo install -m 0640 -o root -g mrt /dev/null /etc/mrt/connection-node.toml
 sudo tee /etc/mrt/connection-node.toml >/dev/null <<'EOF'
 [server]
 listen_addr = "0.0.0.0:8443"
@@ -149,7 +165,8 @@ path = "/var/lib/mrt/mrt-node.db"
 [log]
 level = "info"
 EOF
-sudo chmod 0644 /etc/mrt/connection-node.toml
+sudo chown root:mrt /etc/mrt/connection-node.toml
+sudo chmod 0640 /etc/mrt/connection-node.toml
 sudo install -m 0755 ./target/release/connection-node /usr/local/bin/connection-node
 sudo install -m 0644 ./deploy/connection-node.service /etc/systemd/system/connection-node.service
 ```
