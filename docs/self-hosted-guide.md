@@ -77,14 +77,18 @@ sudo chmod 0640 /etc/mrt/connection-node.toml
 
 ## Create App Users and Tokens
 
-Use the same binary for user management:
+Run user/token management as the `mrt` service user so `/var/lib/mrt/mrt-node.db`
+stays writable by the runtime user. With this guide's `root:mrt 0640` config file,
+`mrt` can read `/etc/mrt/connection-node.toml`:
 
 ```bash
-./target/release/connection-node --config /etc/mrt/connection-node.toml user add --name alice
-./target/release/connection-node --config /etc/mrt/connection-node.toml user list
-./target/release/connection-node --config /etc/mrt/connection-node.toml user reset --name alice
-./target/release/connection-node --config /etc/mrt/connection-node.toml user revoke --name alice
+sudo -u mrt /usr/local/bin/connection-node --config /etc/mrt/connection-node.toml user add --name alice
+sudo -u mrt /usr/local/bin/connection-node --config /etc/mrt/connection-node.toml user list
+sudo -u mrt /usr/local/bin/connection-node --config /etc/mrt/connection-node.toml user reset --name alice
+sudo -u mrt /usr/local/bin/connection-node --config /etc/mrt/connection-node.toml user revoke --name alice
 ```
+
+If you have not installed to `/usr/local/bin` yet, substitute `./target/release/connection-node`.
 
 ## Run with Docker
 
