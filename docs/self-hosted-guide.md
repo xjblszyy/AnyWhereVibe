@@ -90,6 +90,29 @@ sudo -u mrt /usr/local/bin/connection-node --config /etc/mrt/connection-node.tom
 
 If you have not installed to `/usr/local/bin` yet, substitute `./target/release/connection-node`.
 
+## Connect Mobile Clients In Managed Mode
+
+After you create a user token, both mobile apps can use the self-hosted node in relay-first managed mode.
+
+Use these values in the mobile app settings:
+
+- Connection mode: `Managed`
+- Connection Node URL: `ws://<your-host>:8443/ws`
+- Auth token: the `mrt_ak_...` token returned by `connection-node user add`
+
+Current relay-first behavior:
+
+- The phone registers itself with the node using `DeviceRegister`
+- The settings screen fetches the available online desktop agents with `DeviceListRequest`
+- Selecting an agent sends `ConnectToDevice`
+- After the node returns `ConnectToDeviceAck`, the app starts the normal agent handshake over the relay
+
+Current limitations:
+
+- This is relay-first only; there is no ICE/P2P upgrade yet
+- TLS termination is still expected to happen in front of `connection-node`
+- Android and iOS both remember the last selected managed target device, but the target must be online
+
 ## Run with Docker
 
 Build image:
@@ -200,6 +223,7 @@ ok
 ## Known Limitations and Future Work
 
 - Self-hosted mode is the only production path currently.
+- Mobile managed mode currently uses relay transport only; direct ICE/P2P negotiation is future work.
 - TLS auto-provisioning is not implemented yet (`rustls-acme` is future work).
 - Default examples intentionally run plaintext on `8443` only.
 - If you need external `443`/`wss`, terminate TLS with a reverse proxy/LB (for example Caddy/Nginx/HAProxy) in front of `connection-node` and proxy to `127.0.0.1:8443`.

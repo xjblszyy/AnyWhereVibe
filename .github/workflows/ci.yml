@@ -1,0 +1,99 @@
+name: CI
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  rust:
+    name: Rust Workspace
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Run workspace tests
+        run: cargo test --workspace
+
+  android:
+    name: Android
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Java 17
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Configure Android SDK path
+        run: |
+          SDK_DIR="${ANDROID_SDK_ROOT:-${ANDROID_HOME:-}}"
+          if [ -z "${SDK_DIR}" ]; then
+            echo "ANDROID_SDK_ROOT/ANDROID_HOME is not set" >&2
+            exit 1
+          fi
+          printf 'sdk.dir=%s\n' "${SDK_DIR}" > android/local.properties
+
+      - name: Run Android unit tests and debug build
+        working-directory: android
+        run: |
+          chmod +x ./gradlew
+          ./gradlew :app:testDebugUnitTest :app:assembleDebug
+
+  ios:
+    name: iOS
+    runs-on: macos-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select simulator
+        id: simulator
+        shell: bash
+        run: |
+          DEVICE_ID="$(
+            xcrun simctl list devices available \
+              | awk -F '[()]' '/iPhone/ {print $2; exit}'
+          )"
+          if [[ -z "${DEVICE_ID}" ]]; then
+            echo "No available iPhone simulator found" >&2
+            exit 1
+          fi
+          echo "device_id=${DEVICE_ID}" >> "$GITHUB_OUTPUT"
+
+      - name: Select stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Boot simulator
+        run: |
+          xcrun simctl boot "${{ steps.simulator.outputs.device_id }}" || true
+          xcrun simctl bootstatus "${{ steps.simulator.outputs.device_id }}" -b
+
+      - name: Run targeted iOS tests
+        run: |
+          xcodebuild \
+            -project ios/MRT.xcodeproj \
+            -scheme MRT \
+            -destination "id=${{ steps.simulator.outputs.device_id }}" \
+            -only-testing:MRTTests/PreferencesTests \
+            -only-testing:MRTTests/ChatViewModelTests \
+            -only-testing:MRTTests/ConnectionManagerTests \
+            test
+
+      - name: Run iOS agent E2E harness
+        env:
+          IOS_SIMULATOR_ID: ${{ steps.simulator.outputs.device_id }}
+        run: bash scripts/e2e-ios-agent.sh
