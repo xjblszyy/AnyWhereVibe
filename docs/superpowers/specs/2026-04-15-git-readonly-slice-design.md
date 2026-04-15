@@ -140,11 +140,22 @@ The repository root is not stored in session state in this slice. It is derived 
 
 Repository discovery must support sessions started in subdirectories of a repository.
 
-Behavior:
+Discovery is defined by Git itself, not by a custom filesystem walker.
 
-- if `working_dir` is the repository root, use it
-- if `working_dir` is a child directory inside a repository, walk upward until a repository root is found
-- if the upward walk reaches the filesystem root without finding a repository, treat the session as non-Git
+Required behavior:
+
+- run repository discovery as `git -C <working_dir> rev-parse --show-toplevel`
+- if the command succeeds, the returned path is the resolved repository root
+- if the command fails, treat the session as non-Git
+
+This intentionally inherits Git's own handling for:
+
+- standard repositories
+- subdirectories inside repositories
+- worktrees
+- submodules with working trees
+
+Bare repositories are out of scope for this slice. If a session points at a bare repository or any location without a usable working tree, treat it as non-Git and return `GIT_REPO_NOT_FOUND`.
 
 ### Git Status
 
@@ -171,9 +182,25 @@ The diff request is limited to a single file path.
 Rules:
 
 - `path` is interpreted relative to the resolved repository root
+- `path` must be normalized before use
+- paths containing `..` path traversal or resolving outside the repository root must be rejected with `GIT_DIFF_PATH_INVALID`
 - only changed files from the current status result are valid diff targets
 - a diff request for a path not present in the current repo change set returns an error result
 - the diff payload is a unified diff string suitable for existing `GHDiffView` rendering
+
+Diff generation rules:
+
+- tracked changed files use Git's normal unified diff output
+- untracked files are represented as a synthetic add patch against `/dev/null`
+- binary files are not rendered inline; they return `GIT_DIFF_UNSUPPORTED`
+- rename detail is not surfaced in this slice because status is already flattened to the current path and coarse change type
+
+To keep mobile rendering bounded, the agent must cap diff payload size in this slice:
+
+- maximum payload size: 256 KiB of diff text
+- if the diff exceeds the cap, truncate and append a visible marker line such as `... diff truncated ...`
+
+This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`.
 
 ### Unsupported Operations
 
@@ -313,6 +340,13 @@ These must be separate copy states because they imply different corrective actio
 
 Git errors are business-level errors carried via `GitResult.error`, not transport-level disconnects.
 
+Representation:
+
+- `GitResult.error` uses the existing `ErrorEvent` proto shape
+- `ErrorEvent.code` carries the stable Git error code string
+- `ErrorEvent.message` carries human-readable detail
+- `ErrorEvent.fatal` is always `false` for Git slice errors in this document
+
 Required cases:
 
 - unknown `session_id` -> `GIT_SESSION_NOT_FOUND`
@@ -321,6 +355,7 @@ Required cases:
 - unsupported Git operation in this slice -> `GIT_OP_UNSUPPORTED`
 - diff path not found in the current repository change set -> `GIT_DIFF_PATH_INVALID`
 - git command failure for status or diff -> `GIT_COMMAND_FAILED`
+- binary or otherwise non-renderable diff content -> `GIT_DIFF_UNSUPPORTED`
 
 The websocket connection stays healthy after these errors.
 
@@ -330,6 +365,7 @@ Mobile mapping:
 - `GIT_COMMAND_FAILED` during status -> `StatusError`
 - `GIT_COMMAND_FAILED` during diff -> `DiffError`
 - `GIT_DIFF_PATH_INVALID` -> `DiffError`
+- `GIT_DIFF_UNSUPPORTED` -> `DiffError`
 - `GIT_OP_UNSUPPORTED` is not expected in normal first-slice mobile flows and should surface as a generic feature error banner if encountered
 
 ## Implementation Shape
