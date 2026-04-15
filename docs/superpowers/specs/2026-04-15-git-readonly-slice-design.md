@@ -115,6 +115,8 @@ Proto reality for this slice:
 - the concrete request body is `GitOperation`
 - responses are carried in `Envelope.payload = git_result`
 - the concrete response body is `GitResult`
+- when this document says `GitOperation.status` or `GitOperation.diff`, it refers to the actual `GitOperation.op` oneof field on the wire
+- when this document mentions `GitStatusReq` or `GitDiffReq`, it refers only to the generated nested payload types occupying those oneof fields, not a separate transport envelope
 
 The only supported inbound `GitOperation.op` values are:
 
@@ -207,7 +209,25 @@ The changed-file list must use the current coarse proto statuses only:
 - `deleted`
 - `untracked`
 
-Later Git detail such as staged/unstaged split, renames, or conflicts is intentionally flattened or omitted in this slice because `GitFileChange.status` cannot represent that detail safely.
+Status collection must use a stable Git command shape:
+
+- `git -C <repo_root> status --porcelain=v1 --branch --untracked-files=all --no-renames`
+
+Path contract:
+
+- every `GitFileChange.path` returned by the agent is repo-root-relative
+- all path separators in `GitFileChange.path` are normalized to `/`
+- mobile clients must send back exactly that repo-root-relative path string in `GitDiffReq.path`
+
+Status mapping rules:
+
+- untracked entries map to `untracked`
+- any entry containing `A` in either porcelain column maps to `added`
+- any entry containing `D` in either porcelain column maps to `deleted`
+- any entry containing `M`, `T`, or `U` in either porcelain column maps to `modified`
+- submodule or similar working-tree detail that still appears in porcelain output also maps to `modified`
+
+Because `--no-renames` is required, rename and copy detail is intentionally flattened before it reaches mobile clients. Later Git detail such as staged/unstaged split, renames, or conflicts is intentionally flattened or omitted in this slice because `GitFileChange.status` cannot represent that detail safely.
 
 ### Git Diff
 
@@ -225,17 +245,24 @@ Rules:
 
 Diff generation rules:
 
-- tracked changed files use Git's normal unified diff output
-- untracked files are represented as a synthetic add patch against `/dev/null`
+- tracked changed files use `git -C <repo_root> diff --no-ext-diff --no-renames --unified=3 -- <path>`
+- untracked files use `git -C <repo_root> diff --no-index --no-ext-diff -- /dev/null <absolute_path_to_file>`
 - binary files are not rendered inline; they return `GIT_DIFF_UNSUPPORTED`
 - rename detail is not surfaced in this slice because status is already flattened to the current path and coarse change type
+
+Untracked-file rules:
+
+- the diff returned from `git diff --no-index` is converted to repo-root-relative display paths before sending to mobile
+- untracked file content is subject to the same 256 KiB response cap as any other diff
+- if an untracked file is binary or cannot be rendered safely as text diff content, return `GIT_DIFF_UNSUPPORTED`
 
 To keep mobile rendering bounded, the agent must cap diff payload size in this slice:
 
 - maximum payload size: 256 KiB of diff text
-- if the diff exceeds the cap, truncate and append a visible marker line such as `... diff truncated ...`
+- if the diff exceeds the cap, truncate on a line boundary and append this exact final context line:
+  ` ... diff truncated by agent at 262144 bytes ...`
 
-This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by the marker line embedded inside `GitDiffResult.diff`.
+This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by that exact final context line embedded inside `GitDiffResult.diff`.
 
 ### Unsupported Operations
 
