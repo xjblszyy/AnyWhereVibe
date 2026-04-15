@@ -298,10 +298,15 @@ The agent does not apply Unicode normalization or case-folding in this slice. It
 Diff generation rules:
 
 - tracked changed files use `git -C <repo_root> diff --no-ext-diff --no-renames --unified=3 -- <path>`
-- untracked files use `git -C <repo_root> diff --no-index --no-ext-diff -- /dev/null <absolute_path_to_file>`
+- untracked files use `git -C <repo_root> diff --no-index --no-ext-diff -- <platform_null_path> <absolute_path_to_file>`
 - binary files are not rendered inline; they return `GIT_DIFF_UNSUPPORTED`
 - rename detail is not surfaced in this slice because status is already flattened to the current path and coarse change type
 - `--cached` is not used in this slice because pure index-only changes are intentionally excluded from the worktree-first status surface
+
+`platform_null_path` means:
+
+- `/dev/null` on Unix-like agent hosts
+- `NUL` on Windows agent hosts
 
 Untracked-file rules:
 
@@ -319,8 +324,9 @@ Untracked diff header rewrite is deterministic:
 
 To keep mobile rendering bounded, the agent must cap diff payload size in this slice:
 
-- maximum payload size: 256 KiB of diff text
-- if the diff exceeds the cap, truncate on a line boundary and append this exact final context line:
+- maximum total `GitDiffResult.diff` size: 256 KiB, including any truncation marker line
+- if the diff exceeds the cap, truncate on a line boundary early enough to keep the final payload, including the truncation marker line below, within 256 KiB total
+- when truncation happens, append this exact final context line:
   ` ... diff truncated by agent at 262144 bytes ...`
 
 This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by that exact final context line embedded inside `GitDiffResult.diff`.
