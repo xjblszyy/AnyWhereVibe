@@ -74,15 +74,19 @@ final class StubConnectionManager: ConnectionManaging {
     var onMessagesChange: (([ChatMessage]) -> Void)?
     var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)?
     var onSessionsChange: (([SessionModel]) -> Void)?
+    var onGitResult: ((Mrt_Envelope) -> Void)?
     var sentPrompts: [(prompt: String, sessionID: String)] = []
     var respondedApprovals: [(approvalID: String, approved: Bool)] = []
     var createdSessions: [(name: String, workingDirectory: String)] = []
     var cancelledSessions: [String] = []
     var closedSessions: [String] = []
+    var requestedGitStatusSessionIDs: [(sessionID: String, requestID: String)] = []
+    var requestedGitDiffs: [(sessionID: String, path: String, requestID: String)] = []
     var connectCalls: [(host: String, port: Int)] = []
     var connectError: Error?
     var connectStateAfterConnect: ConnectionState?
     var disconnectCallCount = 0
+    private var gitRequestCounter = 0
 
     func connect(host: String, port: Int) async throws {
         connectCalls.append((host: host, port: port))
@@ -121,6 +125,20 @@ final class StubConnectionManager: ConnectionManaging {
         closedSessions.append(id)
     }
 
+    func requestGitStatus(sessionID: String) async throws -> String {
+        gitRequestCounter += 1
+        let requestID = "git-status-\(gitRequestCounter)"
+        requestedGitStatusSessionIDs.append((sessionID: sessionID, requestID: requestID))
+        return requestID
+    }
+
+    func requestGitDiff(sessionID: String, path: String) async throws -> String {
+        gitRequestCounter += 1
+        let requestID = "git-diff-\(gitRequestCounter)"
+        requestedGitDiffs.append((sessionID: sessionID, path: path, requestID: requestID))
+        return requestID
+    }
+
     func emitState(_ newState: ConnectionState) {
         state = newState
         onStateChange?(newState)
@@ -139,6 +157,52 @@ final class StubConnectionManager: ConnectionManaging {
     func emitSessions(_ newSessions: [SessionModel]) {
         sessions = newSessions
         onSessionsChange?(newSessions)
+    }
+
+    func emitGitStatus(sessionID: String, requestID: String, branch: String, tracking: String, isClean: Bool, changes: [(path: String, status: String)]) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.gitResult = .with { result in
+            result.sessionID = sessionID
+            result.status = .with { status in
+                status.branch = branch
+                status.tracking = tracking
+                status.isClean = isClean
+                status.changes = changes.map { entry in
+                    .with { change in
+                        change.path = entry.path
+                        change.status = entry.status
+                    }
+                }
+            }
+        }
+        onGitResult?(envelope)
+    }
+
+    func emitGitDiff(sessionID: String, requestID: String, diff: String) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.gitResult = .with { result in
+            result.sessionID = sessionID
+            result.diff = .with { payload in
+                payload.diff = diff
+            }
+        }
+        onGitResult?(envelope)
+    }
+
+    func emitGitError(sessionID: String, requestID: String, code: String, message: String) {
+        var envelope = Mrt_Envelope()
+        envelope.requestID = requestID
+        envelope.gitResult = .with { result in
+            result.sessionID = sessionID
+            result.error = .with { error in
+                error.code = code
+                error.message = message
+                error.fatal = false
+            }
+        }
+        onGitResult?(envelope)
     }
 }
 

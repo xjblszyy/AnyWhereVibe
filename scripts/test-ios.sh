@@ -7,7 +7,7 @@ repo_root="$(cd -- "${script_dir}/.." && pwd)"
 ios_project="${IOS_PROJECT_PATH:-ios/MRT.xcodeproj}"
 ios_scheme="${IOS_SCHEME:-MRT}"
 ios_simulator_id="${IOS_SIMULATOR_ID:-}"
-ios_test_filters_raw="${IOS_TEST_FILTERS:-MRTTests/PreferencesTests MRTTests/SettingsValidationTests MRTTests/ChatViewModelTests MRTTests/ConnectionManagerTests MRTTests/SessionViewModelTests}"
+ios_test_filters_raw="${IOS_TEST_FILTERS:-MRTTests/PreferencesTests MRTTests/SettingsValidationTests MRTTests/ChatViewModelTests MRTTests/ConnectionManagerTests MRTTests/SessionViewModelTests MRTTests/GitViewModelTests}"
 
 require_tool() {
   local tool="$1"

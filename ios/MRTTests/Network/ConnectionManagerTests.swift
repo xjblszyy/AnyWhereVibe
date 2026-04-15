@@ -349,6 +349,46 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerSendsGitStatusOperation() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        let requestID = try await manager.requestGitStatus(sessionID: "session-1")
+
+        let gitEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        XCTAssertEqual(gitEnvelope.requestID, requestID)
+        if case .gitOp(let operation) = gitEnvelope.payload,
+           case .status = operation.op {
+            XCTAssertEqual(operation.sessionID, "session-1")
+        } else {
+            XCTFail("Expected git status envelope")
+        }
+    }
+
+    func testConnectionManagerSendsGitDiffOperation() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        let requestID = try await manager.requestGitDiff(sessionID: "session-1", path: "Sources/App.swift")
+
+        let gitEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        XCTAssertEqual(gitEnvelope.requestID, requestID)
+        if case .gitOp(let operation) = gitEnvelope.payload,
+           case .diff(let diff)? = operation.op {
+            XCTAssertEqual(operation.sessionID, "session-1")
+            XCTAssertEqual(diff.path, "Sources/App.swift")
+            XCTAssertFalse(diff.staged)
+        } else {
+            XCTFail("Expected git diff envelope")
+        }
+    }
+
     func testConnectionManagerRegistersPhoneInManagedMode() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)

@@ -100,6 +100,9 @@ class ChatScreenInstrumentedTest {
         private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
         override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
 
+        private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+        override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
+
         val sentPrompts = mutableListOf<PromptCall>()
 
         override suspend fun connect(host: String, port: Int) = Unit
@@ -112,6 +115,8 @@ class ChatScreenInstrumentedTest {
         override suspend fun switchSession(sessionId: String) = Unit
         override suspend fun createSession(name: String, workingDirectory: String) = Unit
         override suspend fun closeSession(sessionId: String) = Unit
+        override suspend fun requestGitStatus(sessionId: String): String = "git-status"
+        override suspend fun requestGitDiff(sessionId: String, path: String): String = "git-diff"
 
         data class PromptCall(val prompt: String, val sessionId: String)
     }

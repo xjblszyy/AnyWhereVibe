@@ -5,12 +5,14 @@ use futures_util::{SinkExt, StreamExt};
 use proto_gen::agent_command::Cmd;
 use proto_gen::agent_event::Evt;
 use proto_gen::envelope::Payload;
+use proto_gen::git_operation::Op as GitOp;
 use proto_gen::session_control::Action;
 use proto_gen::{
     AgentCommand, AgentEvent, AgentInfo, ApprovalRequest, ApprovalResponse, ClientType,
     CloseSession,
-    CreateSession, Envelope, ErrorEvent, GetStatus, Handshake, Heartbeat, SendPrompt,
-    SessionControl, SessionInfo, SessionListUpdate, TaskStatusUpdate,
+    CreateSession, Envelope, ErrorEvent, GetStatus, GitCommitReq, GitDiffReq, GitOperation,
+    GitResult, GitStatusReq, Handshake, Heartbeat, SendPrompt, SessionControl, SessionInfo,
+    SessionListUpdate, TaskStatusUpdate,
 };
 use tempfile::TempDir;
 use tokio::sync::{oneshot, Mutex};
@@ -387,6 +389,42 @@ impl TestClient {
         }
     }
 
+    pub async fn send_git_status(&mut self, session_id: &str) -> String {
+        self.send_git_operation(session_id, GitOp::Status(GitStatusReq {}))
+            .await
+    }
+
+    pub async fn send_git_diff(&mut self, session_id: &str, path: &str) -> String {
+        self.send_git_operation(
+            session_id,
+            GitOp::Diff(GitDiffReq {
+                path: path.to_owned(),
+                staged: false,
+            }),
+        )
+        .await
+    }
+
+    pub async fn send_git_commit(&mut self, session_id: &str) -> String {
+        self.send_git_operation(
+            session_id,
+            GitOp::Commit(GitCommitReq {
+                message: "nope".to_owned(),
+                stage_all: false,
+            }),
+        )
+        .await
+    }
+
+    pub async fn expect_git_result(&mut self) -> (String, GitResult) {
+        loop {
+            let envelope = self.next_envelope().await;
+            if let Some(Payload::GitResult(result)) = envelope.payload {
+                return (envelope.request_id, result);
+            }
+        }
+    }
+
     async fn next_envelope(&mut self) -> Envelope {
         if let Some(envelope) = self.buffered.pop_front() {
             return envelope;
@@ -397,6 +435,21 @@ impl TestClient {
 
     async fn send_envelope(&mut self, envelope: Envelope) {
         send_test_envelope(&mut self.socket, envelope).await;
+    }
+
+    async fn send_git_operation(&mut self, session_id: &str, op: GitOp) -> String {
+        let request_id = new_request_id();
+        self.send_envelope(Envelope {
+            protocol_version: 1,
+            request_id: request_id.clone(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::GitOp(GitOperation {
+                session_id: session_id.to_owned(),
+                op: Some(op),
+            })),
+        })
+        .await;
+        request_id
     }
 }
 

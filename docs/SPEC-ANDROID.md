@@ -14,6 +14,11 @@
 
 Native Kotlin/Compose Android app. Identical design language to iOS (GitHub style), same interaction patterns. Shares Protobuf protocol. All GH design tokens ported to Compose `MaterialTheme` extension.
 
+Current implemented slice note:
+- Chat, Sessions, Settings, and a read-only Git surface are implemented.
+- The current Git slice is worktree-first status plus single-file diff only.
+- Git write operations remain deferred to later phases.
+
 ---
 
 ## File Structure

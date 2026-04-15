@@ -281,6 +281,42 @@ class ConnectionManagerTest {
         )
         assertEquals("session-1", envelope.command.cancelTask.sessionId)
     }
+
+    @Test
+    fun connectionManagerSendsGitStatusOperationWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        val requestId = manager.requestGitStatus(sessionId = "session-1")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(requestId, envelope.requestId)
+        assertEquals(Mrt.Envelope.PayloadCase.GIT_OP, envelope.payloadCase)
+        assertEquals("session-1", envelope.gitOp.sessionId)
+        assertEquals(Mrt.GitOperation.OpCase.STATUS, envelope.gitOp.opCase)
+    }
+
+    @Test
+    fun connectionManagerSendsGitDiffOperationWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        val requestId = manager.requestGitDiff(sessionId = "session-1", path = "Sources/App.kt")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(requestId, envelope.requestId)
+        assertEquals(Mrt.Envelope.PayloadCase.GIT_OP, envelope.payloadCase)
+        assertEquals("session-1", envelope.gitOp.sessionId)
+        assertEquals(Mrt.GitOperation.OpCase.DIFF, envelope.gitOp.opCase)
+        assertEquals("Sources/App.kt", envelope.gitOp.diff.path)
+        assertEquals(false, envelope.gitOp.diff.staged)
+    }
 }
 
 internal class StubWebSocketClient : WebSocketClientProtocol {

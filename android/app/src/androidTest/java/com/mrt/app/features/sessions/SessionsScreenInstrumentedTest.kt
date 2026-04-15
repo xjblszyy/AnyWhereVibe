@@ -142,6 +142,9 @@ class SessionsScreenInstrumentedTest {
         private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
         override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
 
+        private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+        override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
+
         override suspend fun connect(host: String, port: Int) = Unit
         override fun disconnect() = Unit
         override suspend fun sendPrompt(prompt: String, sessionId: String) = Unit
@@ -150,5 +153,7 @@ class SessionsScreenInstrumentedTest {
         override suspend fun switchSession(sessionId: String) = Unit
         override suspend fun createSession(name: String, workingDirectory: String) = Unit
         override suspend fun closeSession(sessionId: String) = Unit
+        override suspend fun requestGitStatus(sessionId: String): String = "git-status"
+        override suspend fun requestGitDiff(sessionId: String, path: String): String = "git-diff"
     }
 }

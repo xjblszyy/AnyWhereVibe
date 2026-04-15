@@ -190,6 +190,9 @@ internal class FakeConnectionManager : ConnectionManaging {
     private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
     override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
 
+    private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+    override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
+
     val connectCalls = mutableListOf<ConnectCall>()
     val sentPrompts = mutableListOf<PromptCall>()
     val respondedApprovals = mutableListOf<ApprovalCall>()
@@ -233,6 +236,10 @@ internal class FakeConnectionManager : ConnectionManaging {
     override suspend fun closeSession(sessionId: String) {
         closedSessions += sessionId
     }
+
+    override suspend fun requestGitStatus(sessionId: String): String = "git-status"
+
+    override suspend fun requestGitDiff(sessionId: String, path: String): String = "git-diff"
 
     fun emitState(value: ConnectionState) {
         _state.value = value

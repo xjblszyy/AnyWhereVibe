@@ -21,6 +21,11 @@ struct MRTApp: App {
                 connectionManager: UITestConnectionManager(),
                 preferences: Preferences(userDefaults: makeUITestUserDefaults())
             )
+        case .uiSmokeGit:
+            ContentView(
+                connectionManager: UITestConnectionManager(gitSmokeEnabled: true),
+                preferences: Preferences(userDefaults: makeUITestUserDefaults())
+            )
         }
     }
 
@@ -35,9 +40,12 @@ struct MRTApp: App {
 private enum AppLaunchMode {
     case standard
     case uiSmoke
+    case uiSmokeGit
 
     init(arguments: [String]) {
-        if arguments.contains("MRT_UI_SMOKE") {
+        if arguments.contains("MRT_UI_SMOKE_GIT") {
+            self = .uiSmokeGit
+        } else if arguments.contains("MRT_UI_SMOKE") {
             self = .uiSmoke
         } else {
             self = .standard
@@ -74,11 +82,16 @@ private final class UITestConnectionManager: ConnectionManaging {
         didSet { onPendingApprovalChange?(pendingApproval) }
     }
 
+    var onGitResult: ((Mrt_Envelope) -> Void)?
+
     var onSessionsChange: (([SessionModel]) -> Void)? {
         didSet { onSessionsChange?(sessions) }
     }
 
-    init() {
+    private let gitSmokeEnabled: Bool
+
+    init(gitSmokeEnabled: Bool = false) {
+        self.gitSmokeEnabled = gitSmokeEnabled
         self.pendingApproval = nil
         self.sessions = Self.demoSessions
     }
@@ -132,6 +145,77 @@ private final class UITestConnectionManager: ConnectionManaging {
 
     func closeSession(id: String) async throws {
         sessions.removeAll { $0.id == id }
+    }
+
+    func requestGitStatus(sessionID: String) async throws -> String {
+        let requestID = UUID().uuidString
+        guard gitSmokeEnabled else {
+            return requestID
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            var envelope = Mrt_Envelope()
+            envelope.requestID = requestID
+            envelope.gitResult = .with { result in
+                result.sessionID = sessionID
+                result.status = .with { status in
+                    status.branch = "main"
+                    status.tracking = "origin/main"
+                    status.isClean = false
+                    status.changes = [
+                        .with { change in
+                            change.path = "Sources/App.swift"
+                            change.status = "modified"
+                        },
+                        .with { change in
+                            change.path = "README.md"
+                            change.status = "untracked"
+                        },
+                    ]
+                }
+            }
+            self.onGitResult?(envelope)
+        }
+        return requestID
+    }
+
+    func requestGitDiff(sessionID: String, path: String) async throws -> String {
+        let requestID = UUID().uuidString
+        guard gitSmokeEnabled else {
+            return requestID
+        }
+
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            var envelope = Mrt_Envelope()
+            envelope.requestID = requestID
+            envelope.gitResult = .with { result in
+                result.sessionID = sessionID
+                result.diff = .with { payload in
+                    if path == "Sources/App.swift" {
+                        payload.diff = """
+                        diff --git a/Sources/App.swift b/Sources/App.swift
+                        --- a/Sources/App.swift
+                        +++ b/Sources/App.swift
+                        @@ -1,1 +1,1 @@
+                        -let enabled = false
+                        +let enabled = true
+                        """
+                    } else {
+                        payload.diff = """
+                        diff --git a/README.md b/README.md
+                        --- /dev/null
+                        +++ b/README.md
+                        @@ -0,0 +1,1 @@
+                        +Git smoke fixture
+                        """
+                    }
+                }
+            }
+            self.onGitResult?(envelope)
+        }
+        return requestID
     }
 
     private func updateSession(id: String, status: Mrt_TaskStatus) {

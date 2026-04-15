@@ -23,6 +23,7 @@ protocol ConnectionManaging: AnyObject {
     var onMessagesChange: (([ChatMessage]) -> Void)? { get set }
     var onPendingApprovalChange: ((Mrt_ApprovalRequest?) -> Void)? { get set }
     var onSessionsChange: (([SessionModel]) -> Void)? { get set }
+    var onGitResult: ((Mrt_Envelope) -> Void)? { get set }
 
     func connect(host: String, port: Int) async throws
     func disconnect()
@@ -32,6 +33,8 @@ protocol ConnectionManaging: AnyObject {
     func switchSession(to sessionID: String) async throws
     func createSession(name: String, workingDirectory: String) async throws
     func closeSession(id: String) async throws
+    func requestGitStatus(sessionID: String) async throws -> String
+    func requestGitDiff(sessionID: String, path: String) async throws -> String
 }
 
 extension ConnectionManaging {
@@ -39,6 +42,11 @@ extension ConnectionManaging {
     }
 
     func switchSession(to sessionID: String) async throws {
+    }
+
+    var onGitResult: ((Mrt_Envelope) -> Void)? {
+        get { nil }
+        set { }
     }
 }
 
@@ -87,6 +95,7 @@ final class ConnectionManager: ConnectionManaging {
     var onSessionsChange: (([SessionModel]) -> Void)? {
         didSet { onSessionsChange?(sessions) }
     }
+    var onGitResult: ((Mrt_Envelope) -> Void)?
     var onDevicesChange: (([Mrt_DeviceInfo]) -> Void)? {
         didSet { onDevicesChange?(devices) }
     }
@@ -306,6 +315,39 @@ final class ConnectionManager: ConnectionManaging {
         })
     }
 
+    func requestGitStatus(sessionID: String) async throws -> String {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        let envelope = makeEnvelope { envelope in
+            envelope.gitOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.status = Mrt_GitStatusReq()
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
+    func requestGitDiff(sessionID: String, path: String) async throws -> String {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        let envelope = makeEnvelope { envelope in
+            envelope.gitOp = .with { operation in
+                operation.sessionID = sessionID
+                operation.diff = .with { diff in
+                    diff.path = path
+                    diff.staged = false
+                }
+            }
+        }
+        try await sendEnvelope(envelope)
+        return envelope.requestID
+    }
+
     private func handleIncomingData(_ data: Data, attemptID: UUID) {
         synchronizeOnMain {
             guard attemptID == self.connectionAttemptID else {
@@ -373,6 +415,8 @@ final class ConnectionManager: ConnectionManaging {
                 } else {
                     self.state = .connected
                 }
+            case .gitResult:
+                self.onGitResult?(envelope)
             default:
                 return
             }

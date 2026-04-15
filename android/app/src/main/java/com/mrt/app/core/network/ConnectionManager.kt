@@ -35,6 +35,7 @@ interface ConnectionManaging {
     val messages: StateFlow<List<ChatMessage>>
     val pendingApproval: StateFlow<Mrt.ApprovalRequest?>
     val sessions: StateFlow<List<SessionModel>>
+    val gitEnvelopes: StateFlow<Mrt.Envelope?>
 
     suspend fun connect(host: String, port: Int)
     fun disconnect()
@@ -44,6 +45,8 @@ interface ConnectionManaging {
     suspend fun switchSession(sessionId: String)
     suspend fun createSession(name: String, workingDirectory: String)
     suspend fun closeSession(sessionId: String)
+    suspend fun requestGitStatus(sessionId: String): String
+    suspend fun requestGitDiff(sessionId: String, path: String): String
 }
 
 class ConnectionManager(
@@ -70,6 +73,9 @@ class ConnectionManager(
 
     private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
     override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
+
+    private val _gitEnvelopes = MutableStateFlow<Mrt.Envelope?>(null)
+    override val gitEnvelopes: StateFlow<Mrt.Envelope?> = _gitEnvelopes.asStateFlow()
 
     private val _devices = MutableStateFlow<List<Mrt.DeviceInfo>>(emptyList())
     val devices: StateFlow<List<Mrt.DeviceInfo>> = _devices.asStateFlow()
@@ -258,6 +264,39 @@ class ConnectionManager(
         sendEnvelope(makeEnvelope { setSession(control) })
     }
 
+    override suspend fun requestGitStatus(sessionId: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setGitOp(
+                Mrt.GitOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setStatus(Mrt.GitStatusReq.getDefaultInstance())
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
+    override suspend fun requestGitDiff(sessionId: String, path: String): String {
+        ensureConnected()
+        val envelope = makeEnvelope {
+            setGitOp(
+                Mrt.GitOperation.newBuilder()
+                    .setSessionId(sessionId)
+                    .setDiff(
+                        Mrt.GitDiffReq.newBuilder()
+                            .setPath(path)
+                            .setStaged(false)
+                            .build(),
+                    )
+                    .build(),
+            )
+        }
+        sendEnvelope(envelope)
+        return envelope.requestId
+    }
+
     suspend fun requestDeviceList() {
         ensureManagedRegistered()
         sendEnvelope(
@@ -417,6 +456,9 @@ class ConnectionManager(
                     } else {
                         _state.value = ConnectionState.CONNECTED
                     }
+                }
+                Mrt.Envelope.PayloadCase.GIT_RESULT -> {
+                    _gitEnvelopes.value = envelope
                 }
                 else -> return
             }

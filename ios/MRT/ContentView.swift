@@ -26,6 +26,7 @@ struct ContentView: View {
 
     @State private var selectedTab: Tab = .chat
     @StateObject private var chatViewModel: ChatViewModel
+    @StateObject private var gitViewModel: GitViewModel
     @StateObject private var sessionViewModel: SessionViewModel
     @StateObject private var phoneWatchBridge: PhoneWatchBridge
     @StateObject private var preferences: Preferences
@@ -37,10 +38,12 @@ struct ContentView: View {
     ) {
         let sessionViewModel = SessionViewModel(connectionManager: connectionManager)
         let chatViewModel = ChatViewModel(connectionManager: connectionManager)
+        let gitViewModel = GitViewModel(connectionManager: connectionManager)
 
         _preferences = StateObject(wrappedValue: preferences)
         _sessionViewModel = StateObject(wrappedValue: sessionViewModel)
         _chatViewModel = StateObject(wrappedValue: chatViewModel)
+        _gitViewModel = StateObject(wrappedValue: gitViewModel)
         self.concreteConnectionManager = connectionManager as? ConnectionManager
         _phoneWatchBridge = StateObject(
             wrappedValue: PhoneWatchBridge(
@@ -76,7 +79,7 @@ struct ContentView: View {
                 case .sessions:
                     SessionsScreen(viewModel: sessionViewModel)
                 case .git:
-                    GitPlaceholderView()
+                    GitScreen(viewModel: gitViewModel)
                 case .files:
                     FilesPlaceholderView()
                 case .settings:
@@ -101,9 +104,21 @@ struct ContentView: View {
         }
         .onAppear {
             chatViewModel.activeSessionID = sessionViewModel.activeSessionID
+            gitViewModel.updateContext(
+                connectionState: chatViewModel.connectionState,
+                activeSessionID: sessionViewModel.activeSessionID
+            )
+            gitViewModel.setVisible(selectedTab == .git)
         }
         .onChange(of: sessionViewModel.activeSessionID) { _, newValue in
             chatViewModel.activeSessionID = newValue
+            gitViewModel.updateContext(connectionState: chatViewModel.connectionState, activeSessionID: newValue)
+        }
+        .onChange(of: chatViewModel.connectionState) { _, newValue in
+            gitViewModel.updateContext(connectionState: newValue, activeSessionID: sessionViewModel.activeSessionID)
+        }
+        .onChange(of: selectedTab) { _, newValue in
+            gitViewModel.setVisible(newValue == .git)
         }
         .task(id: preferences.connectionConfigurationSignature) {
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {

@@ -7,7 +7,7 @@ repo_root="$(cd -- "${script_dir}/.." && pwd)"
 ios_project="${IOS_PROJECT_PATH:-ios/MRT.xcodeproj}"
 ios_scheme="${IOS_SCHEME:-MRT}"
 ios_simulator_id="${IOS_SIMULATOR_ID:-}"
-ios_ui_test_filter="${IOS_UI_TEST_FILTER:-MRTUITests/MRTUITests}"
+ios_ui_test_filters_raw="${IOS_UI_TEST_FILTERS:-MRTUITests/MRTUITests MRTUITests/GitUITests}"
 
 require_tool() {
   local tool="$1"
@@ -49,7 +49,7 @@ resolve_simulator_id() {
 
 boot_simulator() {
   local simulator_id="$1"
-  xcrun simctl boot "${simulator_id}" >/dev/null 2>&1 || true
+xcrun simctl boot "${simulator_id}" >/dev/null 2>&1 || true
   xcrun simctl bootstatus "${simulator_id}" -b
 }
 
@@ -59,6 +59,12 @@ require_tool xcrun
 ios_simulator_id="$(resolve_simulator_id)"
 boot_simulator "${ios_simulator_id}"
 
+read -r -a ios_ui_test_filters <<< "${ios_ui_test_filters_raw}"
+test_args=()
+for filter in "${ios_ui_test_filters[@]}"; do
+  test_args+=("-only-testing:${filter}")
+done
+
 cd "${repo_root}"
 xcodebuild \
   -project "${ios_project}" \
@@ -67,4 +73,4 @@ xcodebuild \
   CODE_SIGNING_ALLOWED=NO \
   CODE_SIGNING_REQUIRED=NO \
   test \
-  -only-testing:"${ios_ui_test_filter}"
+  "${test_args[@]}"

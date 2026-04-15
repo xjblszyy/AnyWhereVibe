@@ -8,10 +8,13 @@ use futures_util::{Sink, SinkExt, StreamExt};
 use proto_gen::agent_command::Cmd;
 use proto_gen::agent_event::Evt;
 use proto_gen::envelope::Payload;
+use proto_gen::git_operation::Op as GitOp;
+use proto_gen::git_result::Result as GitResultPayload;
 use proto_gen::session_control::Action;
 use proto_gen::{
     AgentEvent, AgentInfo, ApprovalResponse, CancelTask, CloseSession, CreateSession, Envelope,
-    ErrorEvent, GetStatus, Heartbeat, SendPrompt, SessionInfo, SessionListUpdate, TaskStatus,
+    ErrorEvent, GetStatus, GitOperation, GitResult, Heartbeat, SendPrompt, SessionInfo,
+    SessionListUpdate, TaskStatus,
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, oneshot, Mutex};
@@ -24,6 +27,7 @@ use tracing::{debug, warn};
 use uuid::Uuid;
 
 use crate::adapter::AgentAdapter;
+use crate::git::GitService;
 use crate::session::SessionManager;
 use crate::wire::{decode_ws_binary_message, encode_ws_binary_message};
 
@@ -325,6 +329,10 @@ async fn route_envelope(
 
             Ok(false)
         }
+        Some(Payload::GitOp(git_op)) => {
+            route_git_operation(state, write, envelope.request_id, git_op).await?;
+            Ok(false)
+        }
         _ => {
             send_error_and_close(
                 write,
@@ -470,6 +478,114 @@ async fn route_command(
                 AgentEvent {
                     evt: Some(Evt::SessionList(SessionListUpdate { sessions: filtered })),
                 },
+            )
+            .await?;
+        }
+    }
+
+    Ok(())
+}
+
+async fn route_git_operation(
+    state: &ServerState,
+    write: &mut WsWrite,
+    request_id: String,
+    git_op: GitOperation,
+) -> Result<()> {
+    let session_id = git_op.session_id.clone();
+    match git_op.op {
+        Some(GitOp::Status(_)) => {
+            let working_dir = {
+                let sessions = state.sessions.lock().await;
+                sessions.get(&session_id).map(|session| session.working_dir.clone())
+            };
+            let Some(working_dir) = working_dir else {
+                send_git_error(
+                    write,
+                    &request_id,
+                    &session_id,
+                    "GIT_SESSION_NOT_FOUND",
+                    format!("session '{}' does not exist", session_id),
+                )
+                .await?;
+                return Ok(());
+            };
+
+            match GitService::status_for_session_workdir(std::path::Path::new(&working_dir)) {
+                Ok(status) => {
+                    send_git_result(
+                        write,
+                        &request_id,
+                        GitResult {
+                            session_id,
+                            result: Some(GitResultPayload::Status(status)),
+                        },
+                    )
+                    .await?;
+                }
+                Err(error) => {
+                    send_git_error(
+                        write,
+                        &request_id,
+                        &session_id,
+                        error.code(),
+                        error.message(),
+                    )
+                    .await?;
+                }
+            }
+        }
+        Some(GitOp::Diff(diff)) => {
+            let working_dir = {
+                let sessions = state.sessions.lock().await;
+                sessions.get(&session_id).map(|session| session.working_dir.clone())
+            };
+            let Some(working_dir) = working_dir else {
+                send_git_error(
+                    write,
+                    &request_id,
+                    &session_id,
+                    "GIT_SESSION_NOT_FOUND",
+                    format!("session '{}' does not exist", session_id),
+                )
+                .await?;
+                return Ok(());
+            };
+
+            match GitService::diff_for_session_workdir(
+                std::path::Path::new(&working_dir),
+                &diff.path,
+            ) {
+                Ok(diff_result) => {
+                    send_git_result(
+                        write,
+                        &request_id,
+                        GitResult {
+                            session_id,
+                            result: Some(GitResultPayload::Diff(diff_result)),
+                        },
+                    )
+                    .await?;
+                }
+                Err(error) => {
+                    send_git_error(
+                        write,
+                        &request_id,
+                        &session_id,
+                        error.code(),
+                        error.message(),
+                    )
+                    .await?;
+                }
+            }
+        }
+        Some(_) | None => {
+            send_git_error(
+                write,
+                &request_id,
+                &session_id,
+                "GIT_OP_UNSUPPORTED",
+                "this git operation is not implemented in the read-only slice",
             )
             .await?;
         }
@@ -666,6 +782,22 @@ where
     .await
 }
 
+async fn send_git_result<S>(write: &mut S, request_id: &str, result: GitResult) -> Result<()>
+where
+    S: Sink<Message, Error = tungstenite::Error> + Unpin,
+{
+    send_envelope(
+        write,
+        Envelope {
+            protocol_version: PROTOCOL_VERSION,
+            request_id: request_id.to_owned(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::GitResult(result)),
+        },
+    )
+    .await
+}
+
 async fn send_error<S>(
     write: &mut S,
     request_id: &str,
@@ -684,6 +816,31 @@ where
                 code: code.to_owned(),
                 message: message.into(),
                 fatal,
+            })),
+        },
+    )
+    .await
+}
+
+async fn send_git_error<S>(
+    write: &mut S,
+    request_id: &str,
+    session_id: &str,
+    code: &str,
+    message: impl Into<String>,
+) -> Result<()>
+where
+    S: Sink<Message, Error = tungstenite::Error> + Unpin,
+{
+    send_git_result(
+        write,
+        request_id,
+        GitResult {
+            session_id: session_id.to_owned(),
+            result: Some(GitResultPayload::Error(ErrorEvent {
+                code: code.to_owned(),
+                message: message.into(),
+                fatal: false,
             })),
         },
     )
