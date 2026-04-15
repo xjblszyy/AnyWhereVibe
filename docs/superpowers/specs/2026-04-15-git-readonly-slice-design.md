@@ -118,6 +118,13 @@ Proto reality for this slice:
 - when this document says `GitOperation.status` or `GitOperation.diff`, it refers to the actual `GitOperation.op` oneof field on the wire
 - when this document mentions `GitStatusReq` or `GitDiffReq`, it refers only to the generated nested payload types occupying those oneof fields, not a separate transport envelope
 
+Relevant proto fields for planning, copied from current `proto/mrt.proto` semantics:
+
+- `GitStatusResult { string branch, string tracking, repeated GitFileChange changes, bool is_clean }`
+- `GitFileChange { string path, string status }`
+- `GitDiffResult { string diff }`
+- `ErrorEvent { string code, string message, bool fatal }`
+
 The only supported inbound `GitOperation.op` values are:
 
 - `GitOperation { session_id, status {} }`
@@ -213,11 +220,30 @@ Status collection must use a stable Git command shape:
 
 - `git -C <repo_root> status --porcelain=v1 --branch --untracked-files=all --no-renames`
 
+Parsing contract for branch and tracking:
+
+- use the leading `##` header line from porcelain v1 output
+- `branch` is the local branch name when present
+- `tracking` is only the upstream ref name when present
+- ahead/behind counts and `[gone]` annotations are not surfaced in this slice
+- detached HEAD maps to `branch = "HEAD"` and `tracking = ""`
+- no-upstream branch maps to `tracking = ""`
+
+Examples:
+
+- `## main...origin/main [ahead 1]` -> `branch = "main"`, `tracking = "origin/main"`
+- `## feature` -> `branch = "feature"`, `tracking = ""`
+- `## feature...origin/feature [gone]` -> `branch = "feature"`, `tracking = "origin/feature"`
+- `## HEAD (no branch)` -> `branch = "HEAD"`, `tracking = ""`
+
 Path contract:
 
 - every `GitFileChange.path` returned by the agent is repo-root-relative
 - all path separators in `GitFileChange.path` are normalized to `/`
 - mobile clients must send back exactly that repo-root-relative path string in `GitDiffReq.path`
+- repo-root-relative means no leading slash, no drive prefix, and no `./` prefix
+- paths with spaces or non-ASCII characters are allowed and must round-trip unchanged
+- path comparison is byte-for-byte on the normalized UTF-8 path string emitted by the agent
 
 Status mapping rules:
 
@@ -243,6 +269,17 @@ Rules:
 - a diff request for a path that is under the repo root but is no longer changed at diff time must return `GIT_DIFF_TARGET_STALE`
 - the diff payload is a unified diff string suitable for existing `GHDiffView` rendering
 
+Normalization algorithm for incoming `GitDiffReq.path`:
+
+1. reject empty strings
+2. reject absolute paths
+3. split on `/`
+4. reject any empty, `.` or `..` component
+5. join the remaining components onto the resolved repository root
+6. for untracked-file diff generation, canonicalize the joined file path and ensure it remains under the canonicalized repository root; otherwise return `GIT_DIFF_PATH_OUT_OF_BOUNDS`
+
+The agent does not apply Unicode normalization or case-folding in this slice. It treats paths as exact UTF-8 byte strings emitted by the earlier status response.
+
 Diff generation rules:
 
 - tracked changed files use `git -C <repo_root> diff --no-ext-diff --no-renames --unified=3 -- <path>`
@@ -256,6 +293,14 @@ Untracked-file rules:
 - untracked file content is subject to the same 256 KiB response cap as any other diff
 - if an untracked file is binary or cannot be rendered safely as text diff content, return `GIT_DIFF_UNSUPPORTED`
 
+Untracked diff header rewrite is deterministic:
+
+- first line becomes `diff --git a/<relative_path> b/<relative_path>`
+- `---` line becomes exactly `--- /dev/null`
+- `+++` line becomes exactly `+++ b/<relative_path>`
+- all rewritten paths use the same repo-root-relative `/`-normalized path string returned in status
+- the remainder of the patch body is preserved after those header rewrites, subject to the truncation rule below
+
 To keep mobile rendering bounded, the agent must cap diff payload size in this slice:
 
 - maximum payload size: 256 KiB of diff text
@@ -263,6 +308,12 @@ To keep mobile rendering bounded, the agent must cap diff payload size in this s
   ` ... diff truncated by agent at 262144 bytes ...`
 
 This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by that exact final context line embedded inside `GitDiffResult.diff`.
+
+Binary or non-renderable detection rules:
+
+- if tracked diff output contains `Binary files` or `GIT binary patch`, return `GIT_DIFF_UNSUPPORTED`
+- if an untracked file contains a NUL byte in the first 8192 bytes, return `GIT_DIFF_UNSUPPORTED`
+- no textconv pipeline is used in this slice
 
 ### Unsupported Operations
 
