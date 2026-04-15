@@ -311,9 +311,20 @@ Same visual spec as iOS `ApprovalBannerView`. Yellow left border, shield icon, c
 
 Same structure as iOS: connection mode picker, direct/node address fields, auth token.
 
+Current relay-first slice:
+- Direct mode keeps `host` + `port`.
+- Managed mode stores `node URL`, `auth token`, and the last selected target agent.
+- Saving managed settings registers the phone with the Connection Node and fetches the available online agents inline in settings.
+
 ### ANDROID-T07: Device List (Connection Node)
 
 Same as iOS: list online agents, tap to connect.
+
+Current relay-first slice:
+- Device list is rendered inline inside settings after successful `DeviceRegister`.
+- Tapping an agent sends `ConnectToDevice`.
+- After `ConnectToDeviceAck(success)`, the app sends the normal phone handshake over the relay and reuses the existing chat/session transport.
+- ICE/P2P upgrade is intentionally deferred; this slice is relay-only.
 
 **Acceptance**: Android app has visual and functional parity with iOS P0. Same dark GitHub theme, same thread interaction, same approval flow.
 

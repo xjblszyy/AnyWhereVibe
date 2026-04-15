@@ -674,6 +674,8 @@ struct SettingsView: View {
     @AppStorage("directHost") var directHost: String = ""
     @AppStorage("nodeURL") var nodeURL: String = ""
     @AppStorage("authToken") var authToken: String = ""
+    @AppStorage("managedTargetDeviceID") var managedTargetDeviceID: String = ""
+    @AppStorage("managedTargetDeviceName") var managedTargetDeviceName: String = ""
 
     var body: some View {
         ScrollView {
@@ -688,20 +690,20 @@ struct SettingsView: View {
                         Text("Connection").font(GHTypography.title).foregroundColor(GHColors.textPrimary)
                         Picker("Mode", selection: $mode) {
                             Text("Direct (LAN)").tag(ConnectionMode.direct)
-                            Text("Connection Node").tag(ConnectionMode.node)
+                            Text("Managed").tag(ConnectionMode.managed)
                         }
                         .pickerStyle(.segmented)
 
                         if mode == .direct {
-                            GHInput(text: $directHost, placeholder: "192.168.1.100:9876")
+                            GHInput(text: $directHost, placeholder: "192.168.1.100")
+                            GHInput(text: $directPort, placeholder: "9876")
                         } else {
-                            GHInput(text: $nodeURL, placeholder: "wss://your-server.com")
-                            GHInput(text: $authToken, placeholder: "Auth Token", isSecure: true)
+                            GHInput(text: $nodeURL, placeholder: "wss://your-server.com/ws")
+                            GHInput(text: $authToken, placeholder: "Auth Token")
+                            // Inline relay-first device list from DeviceListResponse
                         }
                     }
                 }
-
-                // Device info, pair button (P3), etc.
             }
             .padding(GHSpacing.lg)
         }
@@ -709,6 +711,12 @@ struct SettingsView: View {
     }
 }
 ```
+
+Current relay-first managed slice:
+- Saving managed settings registers the phone with the Connection Node using `DeviceRegister`.
+- The settings screen fetches the current online agent list with `DeviceListRequest`.
+- Selecting an agent sends `ConnectToDevice`, then the app starts the normal phone handshake over the relay after `ConnectToDeviceAck(success)`.
+- ICE/P2P, QR pairing, and Noise remain later phases.
 
 **Acceptance for all P0**: App connects to mock agent → thread-based chat with GitHub styling → streaming output with cursor → inline approval banner → session sidebar with create/switch → settings with connection config. Dark mode throughout. Visually consistent with GitHub's UI language.
 
@@ -719,6 +727,10 @@ struct SettingsView: View {
 ### IOS-T12: Device List (Connection Node Mode)
 
 GitHub-style list of online agents. `GHStatusDot` for online state. Tap to connect.
+
+Current relay-first slice:
+- The device list is rendered inline in settings, not a separate screen yet.
+- The selected agent is persisted so managed mode can reconnect on launch.
 
 ### IOS-T13: Connection Node Protocol
 
