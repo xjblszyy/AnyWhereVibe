@@ -147,7 +147,7 @@ async fn server_allows_only_one_of_multiple_concurrent_prompts_to_start() {
 
     barrier.wait().await;
 
-    let outcomes = vec![
+    let outcomes = [
         one.await.unwrap(),
         two.await.unwrap(),
         three.await.unwrap(),

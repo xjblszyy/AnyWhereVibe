@@ -11,7 +11,7 @@ async fn server_rejects_non_handshake_first_message() {
 
     socket
         .send(tokio_tungstenite::tungstenite::Message::Binary(
-            vec![0, 0, 0, 0].into(),
+            vec![0, 0, 0, 0],
         ))
         .await
         .unwrap();
@@ -86,7 +86,7 @@ async fn server_rejects_envelope_protocol_version_mismatch_even_when_handshake_p
 
     socket
         .send(tokio_tungstenite::tungstenite::Message::Binary(
-            frame.into(),
+            frame,
         ))
         .await
         .unwrap();
@@ -104,7 +104,7 @@ async fn server_rejects_malformed_binary_frame_with_fatal_error() {
 
     socket
         .send(tokio_tungstenite::tungstenite::Message::Binary(
-            vec![0, 0, 0, 10, 1, 2].into(),
+            vec![0, 0, 0, 10, 1, 2],
         ))
         .await
         .unwrap();
@@ -121,7 +121,7 @@ async fn server_rejects_validly_framed_but_non_protobuf_payload_with_fatal_error
 
     socket
         .send(tokio_tungstenite::tungstenite::Message::Binary(
-            vec![0, 0, 0, 3, 1, 2, 3].into(),
+            vec![0, 0, 0, 3, 1, 2, 3],
         ))
         .await
         .unwrap();
