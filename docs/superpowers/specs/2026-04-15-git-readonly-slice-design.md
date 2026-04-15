@@ -32,7 +32,7 @@ This slice must let a connected mobile client:
 
 - inspect Git status for the active session
 - automatically resolve the nearest repository root from the active session's `working_dir`
-- view the changed-file list for that repository
+- view the worktree-visible changed-file list for that repository
 - open a single changed file and inspect its unified diff
 
 This slice must not change repository state.
@@ -207,7 +207,7 @@ The status request returns the repository summary needed for the first mobile sc
 - current branch name
 - tracking branch text when available
 - `is_clean`
-- changed-file list
+- worktree-visible changed-file list
 
 The changed-file list must use the current coarse proto statuses only:
 
@@ -218,7 +218,7 @@ The changed-file list must use the current coarse proto statuses only:
 
 Status collection must use a stable Git command shape:
 
-- `git -C <repo_root> status --porcelain=v1 --branch --untracked-files=all --no-renames`
+- `git -C <repo_root> -c core.quotepath=off status --porcelain=v1 -z --branch --untracked-files=all --no-renames`
 
 Parsing contract for branch and tracking:
 
@@ -247,11 +247,20 @@ Path contract:
 
 Status mapping rules:
 
+- this slice is worktree-first, not all-changes-first
+- only entries visible in the working tree are included in `changes[]`
+- pure index-only changes are excluded from `changes[]` in this slice
 - untracked entries map to `untracked`
-- any entry containing `A` in either porcelain column maps to `added`
-- any entry containing `D` in either porcelain column maps to `deleted`
-- any entry containing `M`, `T`, or `U` in either porcelain column maps to `modified`
+- entries whose worktree state is `D` map to `deleted`
+- entries whose worktree state is `M`, `T`, or `U` map to `modified`
+- unresolved/conflicted entries that Git exposes through porcelain and which are not cleanly representable still map to `modified`
 - submodule or similar working-tree detail that still appears in porcelain output also maps to `modified`
+
+Operationally, “currently changed” for this slice means:
+
+- untracked files
+- tracked files with a non-space worktree column in porcelain v1 output
+- not files changed only in the index
 
 Because `--no-renames` is required, rename and copy detail is intentionally flattened before it reaches mobile clients. Later Git detail such as staged/unstaged split, renames, or conflicts is intentionally flattened or omitted in this slice because `GitFileChange.status` cannot represent that detail safely.
 
@@ -265,7 +274,7 @@ Rules:
 - `path` must be normalized before use
 - paths containing `..` path traversal or resolving outside the repository root must be rejected with `GIT_DIFF_PATH_OUT_OF_BOUNDS`
 - diff eligibility is checked against a fresh server-side status computation performed during the diff request itself
-- only files currently reported as changed by that fresh server-side status computation are valid diff targets
+- only files currently reported as changed by that fresh worktree-first status computation are valid diff targets
 - a diff request for a path that is under the repo root but is no longer changed at diff time must return `GIT_DIFF_TARGET_STALE`
 - the diff payload is a unified diff string suitable for existing `GHDiffView` rendering
 
@@ -286,6 +295,7 @@ Diff generation rules:
 - untracked files use `git -C <repo_root> diff --no-index --no-ext-diff -- /dev/null <absolute_path_to_file>`
 - binary files are not rendered inline; they return `GIT_DIFF_UNSUPPORTED`
 - rename detail is not surfaced in this slice because status is already flattened to the current path and coarse change type
+- `--cached` is not used in this slice because pure index-only changes are intentionally excluded from the worktree-first status surface
 
 Untracked-file rules:
 
