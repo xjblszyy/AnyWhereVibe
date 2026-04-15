@@ -5,14 +5,17 @@ use std::sync::Arc;
 use anyhow::{bail, Context, Result};
 use clap::Parser;
 use tokio::sync::{oneshot, Mutex};
-use tracing::info;
+use tokio::time::{sleep, Duration};
+use tracing::{info, warn};
 use tracing_subscriber::EnvFilter;
 
 use crate::adapter::{AgentAdapter, CodexAppServerAdapter, CodexCliAdapter, MockAdapter};
 use crate::config::Config;
 use crate::server::Server;
 use crate::session::SessionManager;
-use crate::transport::Transport;
+use crate::transport::{
+    bridge_remote_socket_to_local_server, connect_and_register_remote, Transport,
+};
 
 #[derive(Debug, Clone, Parser)]
 pub struct Cli {
@@ -37,9 +40,8 @@ impl Daemon {
     pub async fn run(self) -> Result<()> {
         init_tracing(&self.config.log.level);
 
-        let transport = Transport::Local {
-            listen_addr: self.config.server.listen_addr.clone(),
-        };
+        let transport = Transport::from_config(&self.config)?;
+        let listen_addr = transport.server_bind_addr().to_owned();
 
         let mut adapter = create_adapter(&self.config)?;
         adapter.start().await?;
@@ -48,19 +50,61 @@ impl Daemon {
         let sessions = Arc::new(Mutex::new(SessionManager::new(Path::new(
             &self.config.storage.sessions_path,
         ))?));
-        let server = Server::bind(transport.listen_addr()?, adapter, sessions).await?;
+        let server = Server::bind(&listen_addr, adapter, sessions).await?;
         let local_addr = server.local_addr()?;
         let (shutdown_tx, shutdown_rx) = oneshot::channel();
 
         info!("agent runtime listening on {}", local_addr);
 
         let server_task = tokio::spawn(async move { server.run(shutdown_rx).await });
+        let remote_task = match transport {
+            Transport::Local { .. } => None,
+            Transport::Remote {
+                node_url,
+                device_id,
+                display_name,
+                auth_token,
+            } => {
+                let local_server_url = format!("ws://127.0.0.1:{}/", local_addr.port());
+                Some(tokio::spawn(async move {
+                    loop {
+                        match connect_and_register_remote(
+                            &node_url,
+                            &device_id,
+                            &display_name,
+                            &auth_token,
+                        )
+                        .await
+                        {
+                            Ok(remote_socket) => {
+                                if let Err(error) = bridge_remote_socket_to_local_server(
+                                    remote_socket,
+                                    local_server_url.clone(),
+                                )
+                                .await
+                                {
+                                    warn!(?error, "remote transport bridge stopped");
+                                }
+                            }
+                            Err(error) => {
+                                warn!(?error, "connection node registration failed");
+                            }
+                        }
+
+                        sleep(Duration::from_millis(500)).await;
+                    }
+                }))
+            }
+        };
 
         tokio::signal::ctrl_c()
             .await
             .context("failed to listen for ctrl+c")?;
 
         let _ = shutdown_tx.send(());
+        if let Some(remote_task) = &remote_task {
+            remote_task.abort();
+        }
         server_task
             .await
             .context("server task join failed")?

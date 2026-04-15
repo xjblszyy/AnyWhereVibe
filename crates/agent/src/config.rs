@@ -9,6 +9,7 @@ pub struct Config {
     pub codex: CodexConfig,
     pub storage: StorageConfig,
     pub log: LogConfig,
+    pub connection_node: Option<ConnectionNodeConfig>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -78,6 +79,14 @@ impl Default for LogConfig {
             level: "info".into(),
         }
     }
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+pub struct ConnectionNodeConfig {
+    pub url: String,
+    pub device_id: String,
+    pub display_name: String,
+    pub auth_token: String,
 }
 
 pub fn default_storage_dir() -> PathBuf {

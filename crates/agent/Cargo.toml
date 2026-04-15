@@ -22,5 +22,6 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 uuid = { version = "1", features = ["v4"] }
 
 [dev-dependencies]
+connection-node = { path = "../connection-node" }
 tempfile = "3"
 tokio-test = "0.4"
