@@ -212,9 +212,10 @@ The status request returns the repository summary needed for the first mobile sc
 The changed-file list must use the current coarse proto statuses only:
 
 - `modified`
-- `added`
 - `deleted`
 - `untracked`
+
+Although the proto also permits `added`, this slice does not emit `added` because it is intentionally worktree-first and excludes pure index-only changes.
 
 Status collection must use a stable Git command shape:
 
@@ -261,6 +262,11 @@ Operationally, “currently changed” for this slice means:
 - untracked files
 - tracked files with a non-space worktree column in porcelain v1 output
 - not files changed only in the index
+
+`is_clean` is also worktree-first in this slice:
+
+- `is_clean = true` iff the derived worktree-first `changes[]` list is empty
+- a repository with index-only changes and no worktree-visible changes is reported as clean in this slice
 
 Because `--no-renames` is required, rename and copy detail is intentionally flattened before it reaches mobile clients. Later Git detail such as staged/unstaged split, renames, or conflicts is intentionally flattened or omitted in this slice because `GitFileChange.status` cannot represent that detail safely.
 
