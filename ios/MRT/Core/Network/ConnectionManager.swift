@@ -32,7 +32,7 @@ protocol ConnectionManaging: AnyObject {
 }
 
 final class ConnectionManager: ConnectionManaging {
-    private static let reconnectRetryDelay: TimeInterval = 0.02
+    private static let reconnectRetryDelay: TimeInterval = 0.5
 
     private let socket: WebSocketClientProtocol
     private let heartbeatInterval: TimeInterval

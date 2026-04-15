@@ -1,5 +1,9 @@
 import Foundation
 
+enum WebSocketClientError: Error, Equatable {
+    case notConnected
+}
+
 protocol WebSocketClientProtocol: AnyObject {
     var onReceive: ((Data) -> Void)? { get set }
     var onClose: (() -> Void)? { get set }
@@ -33,7 +37,7 @@ final class WebSocketClient: NSObject, WebSocketClientProtocol {
     }
 
     func send(_ data: Data) async throws {
-        guard let task else { return }
+        guard let task else { throw WebSocketClientError.notConnected }
         try await task.send(.data(data))
     }
 
