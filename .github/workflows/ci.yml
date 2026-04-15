@@ -89,6 +89,7 @@ jobs:
             -scheme MRT \
             -destination "id=${{ steps.simulator.outputs.device_id }}" \
             -only-testing:MRTTests/PreferencesTests \
+            -only-testing:MRTTests/SettingsValidationTests \
             -only-testing:MRTTests/ChatViewModelTests \
             -only-testing:MRTTests/ConnectionManagerTests \
             test

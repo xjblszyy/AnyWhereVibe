@@ -118,24 +118,13 @@ struct SettingsView: View {
     }
 
     private var validationMessage: String? {
-        switch mode {
-        case .direct:
-            if host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "Host is required for direct LAN mode."
-            }
-            guard let port = Int(portText), (1...65_535).contains(port) else {
-                return "Port must be a number between 1 and 65535."
-            }
-            return nil
-        case .managed:
-            if nodeURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "Connection Node URL is required for managed mode."
-            }
-            if authToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
-                return "Auth token is required for managed mode."
-            }
-            return nil
-        }
+        settingsValidationMessage(
+            mode: mode,
+            host: host,
+            portText: portText,
+            nodeURL: nodeURL,
+            authToken: authToken
+        )
     }
 
     private func save() {
@@ -182,5 +171,32 @@ struct SettingsView: View {
         Task {
             try? await connectionManager.connectToDevice(targetDeviceID: device.deviceID)
         }
+    }
+}
+
+func settingsValidationMessage(
+    mode: ConnectionMode,
+    host: String,
+    portText: String,
+    nodeURL: String,
+    authToken: String
+) -> String? {
+    switch mode {
+    case .direct:
+        if host.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Host is required for direct LAN mode."
+        }
+        guard let port = Int(portText), (1...65_535).contains(port) else {
+            return "Port must be a number between 1 and 65535."
+        }
+        return nil
+    case .managed:
+        if nodeURL.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Connection Node URL is required for managed mode."
+        }
+        if authToken.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "Auth token is required for managed mode."
+        }
+        return nil
     }
 }

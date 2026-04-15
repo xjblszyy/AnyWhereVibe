@@ -98,3 +98,31 @@ final class PreferencesTests: XCTestCase {
         )
     }
 }
+
+final class SettingsValidationTests: XCTestCase {
+    func testManagedModeRequiresNodeURL() {
+        XCTAssertEqual(
+            settingsValidationMessage(
+                mode: .managed,
+                host: "127.0.0.1",
+                portText: "9876",
+                nodeURL: "",
+                authToken: "mrt_ak_example1234567890"
+            ),
+            "Connection Node URL is required for managed mode."
+        )
+    }
+
+    func testManagedModeRequiresAuthToken() {
+        XCTAssertEqual(
+            settingsValidationMessage(
+                mode: .managed,
+                host: "127.0.0.1",
+                portText: "9876",
+                nodeURL: "wss://relay.example.com/ws",
+                authToken: ""
+            ),
+            "Auth token is required for managed mode."
+        )
+    }
+}
