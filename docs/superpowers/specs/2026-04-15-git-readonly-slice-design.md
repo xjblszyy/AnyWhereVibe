@@ -50,7 +50,7 @@ The scope decisions for this slice are fixed:
 
 ### In Scope
 
-- agent-side handling for `GitStatusReq` and `GitDiffReq`
+- agent-side handling for `GitOperation.op = status` (`GitStatusReq`) and `GitOperation.op = diff` (`GitDiffReq`)
 - repository discovery based on active session `working_dir`
 - error reporting for missing session, missing repository, unsupported Git operations, and diff failures
 - iOS Git screen replacing the current placeholder
@@ -109,17 +109,51 @@ This means the agent runtime handles `Envelope.git_op` directly alongside existi
 
 No proto changes are required for this slice.
 
-The only supported inbound operations are:
+Proto reality for this slice:
+
+- requests are carried in `Envelope.payload = git_op`
+- the concrete request body is `GitOperation`
+- responses are carried in `Envelope.payload = git_result`
+- the concrete response body is `GitResult`
+
+The only supported inbound `GitOperation.op` values are:
 
 - `GitOperation { session_id, status {} }`
 - `GitOperation { session_id, diff { path, staged=false } }`
 
-The only successful outbound result shapes are:
+The only successful outbound `GitResult.result` shapes are:
 
 - `GitResult { session_id, status { branch, tracking, changes[], is_clean } }`
 - `GitResult { session_id, diff { diff } }`
 
 All other Git operations already present in the proto must return `GitResult.error` in this slice.
+
+Example request:
+
+```text
+Envelope {
+  payload = git_op {
+    session_id = "session-1"
+    status {}
+  }
+}
+```
+
+Example response:
+
+```text
+Envelope {
+  payload = git_result {
+    session_id = "session-1"
+    status {
+      branch = "main"
+      tracking = "origin/main"
+      is_clean = false
+      changes = [...]
+    }
+  }
+}
+```
 
 ## Backend Design
 
@@ -183,9 +217,10 @@ Rules:
 
 - `path` is interpreted relative to the resolved repository root
 - `path` must be normalized before use
-- paths containing `..` path traversal or resolving outside the repository root must be rejected with `GIT_DIFF_PATH_INVALID`
-- only changed files from the current status result are valid diff targets
-- a diff request for a path not present in the current repo change set returns an error result
+- paths containing `..` path traversal or resolving outside the repository root must be rejected with `GIT_DIFF_PATH_OUT_OF_BOUNDS`
+- diff eligibility is checked against a fresh server-side status computation performed during the diff request itself
+- only files currently reported as changed by that fresh server-side status computation are valid diff targets
+- a diff request for a path that is under the repo root but is no longer changed at diff time must return `GIT_DIFF_TARGET_STALE`
 - the diff payload is a unified diff string suitable for existing `GHDiffView` rendering
 
 Diff generation rules:
@@ -200,7 +235,7 @@ To keep mobile rendering bounded, the agent must cap diff payload size in this s
 - maximum payload size: 256 KiB of diff text
 - if the diff exceeds the cap, truncate and append a visible marker line such as `... diff truncated ...`
 
-This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`.
+This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by the marker line embedded inside `GitDiffResult.diff`.
 
 ### Unsupported Operations
 
@@ -353,7 +388,8 @@ Required cases:
 - session has unusable or missing `working_dir` -> `GIT_WORKDIR_INVALID`
 - no repository found for the resolved working directory -> `GIT_REPO_NOT_FOUND`
 - unsupported Git operation in this slice -> `GIT_OP_UNSUPPORTED`
-- diff path not found in the current repository change set -> `GIT_DIFF_PATH_INVALID`
+- diff path resolves outside repo root or fails normalization -> `GIT_DIFF_PATH_OUT_OF_BOUNDS`
+- diff target is no longer present in the current changed-file set at diff time -> `GIT_DIFF_TARGET_STALE`
 - git command failure for status or diff -> `GIT_COMMAND_FAILED`
 - binary or otherwise non-renderable diff content -> `GIT_DIFF_UNSUPPORTED`
 
@@ -364,7 +400,8 @@ Mobile mapping:
 - `GIT_SESSION_NOT_FOUND`, `GIT_WORKDIR_INVALID`, `GIT_REPO_NOT_FOUND` -> `Unavailable`
 - `GIT_COMMAND_FAILED` during status -> `StatusError`
 - `GIT_COMMAND_FAILED` during diff -> `DiffError`
-- `GIT_DIFF_PATH_INVALID` -> `DiffError`
+- `GIT_DIFF_PATH_OUT_OF_BOUNDS` -> `DiffError`
+- `GIT_DIFF_TARGET_STALE` -> `DiffError`
 - `GIT_DIFF_UNSUPPORTED` -> `DiffError`
 - `GIT_OP_UNSUPPORTED` is not expected in normal first-slice mobile flows and should surface as a generic feature error banner if encountered
 
