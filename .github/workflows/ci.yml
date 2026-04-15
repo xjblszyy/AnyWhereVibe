@@ -67,8 +67,7 @@ jobs:
           disable-animations: true
           emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -no-snapshot
           script: |
-            cd android
-            ./gradlew :app:connectedDebugAndroidTest
+            MRT_ANDROID_SDK_ROOT="${ANDROID_SDK_ROOT}" bash scripts/e2e-android-ui.sh
 
   ios:
     name: iOS
