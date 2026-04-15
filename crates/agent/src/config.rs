@@ -2,25 +2,13 @@ use std::path::PathBuf;
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq, Default)]
 pub struct Config {
     pub server: ServerConfig,
     pub agent: AgentConfig,
     pub codex: CodexConfig,
     pub storage: StorageConfig,
     pub log: LogConfig,
-}
-
-impl Default for Config {
-    fn default() -> Self {
-        Self {
-            server: ServerConfig::default(),
-            agent: AgentConfig::default(),
-            codex: CodexConfig::default(),
-            storage: StorageConfig::default(),
-            log: LogConfig::default(),
-        }
-    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
@@ -94,7 +82,7 @@ impl Default for LogConfig {
 
 pub fn default_storage_dir() -> PathBuf {
     dirs::home_dir()
-        .unwrap_or_else(|| std::env::temp_dir())
+        .unwrap_or_else(std::env::temp_dir)
         .join(".mrt")
 }
 

@@ -388,7 +388,7 @@ impl TestClient {
 async fn send_test_envelope(socket: &mut TestSocket, envelope: Envelope) {
     let frame = encode_ws_binary_message(&envelope).expect("encode websocket frame");
     socket
-        .send(Message::Binary(frame.into()))
+        .send(Message::Binary(frame))
         .await
         .expect("send websocket frame");
 }

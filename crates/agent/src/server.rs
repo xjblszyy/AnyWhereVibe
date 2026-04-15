@@ -614,7 +614,7 @@ where
 {
     let frame = encode_ws_binary_message(&envelope)?;
     write
-        .send(Message::Binary(frame.into()))
+        .send(Message::Binary(frame))
         .await
         .context("failed to send websocket binary frame")
 }

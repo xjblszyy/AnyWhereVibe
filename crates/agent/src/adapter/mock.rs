@@ -203,7 +203,7 @@ impl MockAdapterInner {
         let response =
             format!("Mock adapter received \"{prompt}\" and is streaming a response in chunks.");
         let chunks = split_chunks(&response, CHUNK_SIZE);
-        let approval_after = if prompt_index % 3 == 0 {
+        let approval_after = if prompt_index.is_multiple_of(3) {
             Some(2usize)
         } else {
             None
