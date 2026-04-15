@@ -4,35 +4,44 @@ struct SessionRowView: View {
     let session: SessionModel
     let isActive: Bool
     let onSelect: () -> Void
+    let onClose: (() -> Void)?
 
     var body: some View {
-        Button(action: onSelect) {
-            HStack(spacing: GHSpacing.md) {
-                VStack(alignment: .leading, spacing: GHSpacing.xs) {
-                    Text(session.name)
-                        .font(GHTypography.bodySm)
-                        .foregroundStyle(GHColors.textPrimary)
+        HStack(spacing: GHSpacing.md) {
+            Button(action: onSelect) {
+                HStack(spacing: GHSpacing.md) {
+                    VStack(alignment: .leading, spacing: GHSpacing.xs) {
+                        Text(session.name)
+                            .font(GHTypography.bodySm)
+                            .foregroundStyle(GHColors.textPrimary)
 
-                    Text(session.workingDirectory)
-                        .font(GHTypography.caption)
-                        .foregroundStyle(GHColors.textSecondary)
-                        .lineLimit(1)
+                        Text(session.workingDirectory)
+                            .font(GHTypography.caption)
+                            .foregroundStyle(GHColors.textSecondary)
+                            .lineLimit(1)
+                    }
+
+                    Spacer()
+
+                    GHBadge(text: session.status.displayName, color: isActive ? GHColors.accentBlue : GHColors.textTertiary)
                 }
-
-                Spacer()
-
-                GHBadge(text: session.status.displayName, color: isActive ? GHColors.accentBlue : GHColors.textTertiary)
+                .padding(GHSpacing.md)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(isActive ? GHColors.bgTertiary : GHColors.bgSecondary)
+                .overlay(
+                    RoundedRectangle(cornerRadius: GHRadius.md)
+                        .stroke(isActive ? GHColors.accentBlue.opacity(0.35) : GHColors.borderDefault, lineWidth: 1)
+                )
+                .clipShape(RoundedRectangle(cornerRadius: GHRadius.md))
             }
-            .padding(GHSpacing.md)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .background(isActive ? GHColors.bgTertiary : GHColors.bgSecondary)
-            .overlay(
-                RoundedRectangle(cornerRadius: GHRadius.md)
-                    .stroke(isActive ? GHColors.accentBlue.opacity(0.35) : GHColors.borderDefault, lineWidth: 1)
-            )
-            .clipShape(RoundedRectangle(cornerRadius: GHRadius.md))
+            .buttonStyle(.plain)
+
+            if let onClose {
+                GHButton(title: "Close", icon: nil, style: .danger, action: onClose)
+                    .opacity(session.isClosable ? 1 : 0.5)
+                    .disabled(!session.isClosable)
+            }
         }
-        .buttonStyle(.plain)
     }
 }
 
@@ -54,5 +63,11 @@ private extension Mrt_TaskStatus {
         case .unspecified, .UNRECOGNIZED:
             return "Unknown"
         }
+    }
+}
+
+private extension SessionModel {
+    var isClosable: Bool {
+        status != .running && status != .waitingApproval
     }
 }

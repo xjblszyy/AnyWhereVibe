@@ -31,6 +31,7 @@ protocol ConnectionManaging: AnyObject {
     func cancelTask(sessionID: String) async throws
     func switchSession(to sessionID: String) async throws
     func createSession(name: String, workingDirectory: String) async throws
+    func closeSession(id: String) async throws
 }
 
 extension ConnectionManaging {
@@ -261,6 +262,21 @@ final class ConnectionManager: ConnectionManaging {
         control.create = .with { create in
             create.name = name
             create.workingDir = workingDirectory
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.session = control
+        })
+    }
+
+    func closeSession(id: String) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        var control = Mrt_SessionControl()
+        control.close = .with { close in
+            close.sessionID = id
         }
 
         try await sendEnvelope(makeEnvelope { envelope in

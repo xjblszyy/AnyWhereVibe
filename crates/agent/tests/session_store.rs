@@ -159,3 +159,34 @@ fn running_and_waiting_approval_sessions_normalize_to_idle_on_load() {
     assert_eq!(running.status, TaskStatus::Idle as i32);
     assert_eq!(approval.status, TaskStatus::Idle as i32);
 }
+
+#[test]
+fn close_removes_session_and_persists_removal() {
+    let temp_dir = tempdir().expect("temp dir");
+    let sessions_path = temp_dir.path().join("sessions.json");
+    let mut manager = SessionManager::new(&sessions_path).expect("load manager");
+
+    let session = manager.create("Main", "/tmp/project").expect("create session");
+    manager.close(&session.id).expect("close session");
+
+    assert!(manager.get(&session.id).is_none());
+
+    let reloaded = SessionManager::new(&sessions_path).expect("reload manager");
+    assert!(reloaded.get(&session.id).is_none());
+    assert!(reloaded.list().is_empty());
+}
+
+#[test]
+fn close_rejects_running_session() {
+    let temp_dir = tempdir().expect("temp dir");
+    let sessions_path = temp_dir.path().join("sessions.json");
+    let mut manager = SessionManager::new(&sessions_path).expect("load manager");
+
+    let session = manager.create("Busy", "/tmp/busy").expect("create session");
+    manager
+        .update_status(&session.id, TaskStatus::Running)
+        .expect("mark running");
+
+    let error = manager.close(&session.id).expect_err("running session must not close");
+    assert!(error.to_string().contains("cannot close a running session"));
+}

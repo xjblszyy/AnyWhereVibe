@@ -43,6 +43,7 @@ interface ConnectionManaging {
     suspend fun cancelTask(sessionId: String)
     suspend fun switchSession(sessionId: String)
     suspend fun createSession(name: String, workingDirectory: String)
+    suspend fun closeSession(sessionId: String)
 }
 
 class ConnectionManager(
@@ -237,6 +238,19 @@ class ConnectionManager(
                 Mrt.CreateSession.newBuilder()
                     .setName(name)
                     .setWorkingDir(workingDirectory)
+                    .build(),
+            )
+            .build()
+
+        sendEnvelope(makeEnvelope { setSession(control) })
+    }
+
+    override suspend fun closeSession(sessionId: String) {
+        ensureConnected()
+        val control = Mrt.SessionControl.newBuilder()
+            .setClose(
+                Mrt.CloseSession.newBuilder()
+                    .setSessionId(sessionId)
                     .build(),
             )
             .build()

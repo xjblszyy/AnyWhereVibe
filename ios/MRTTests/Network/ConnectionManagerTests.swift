@@ -313,6 +313,24 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerSendsCloseSessionControl() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        try await manager.closeSession(id: "session-1")
+
+        let closeEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        if case .session(let session) = closeEnvelope.payload,
+           case .close(let close)? = session.action {
+            XCTAssertEqual(close.sessionID, "session-1")
+        } else {
+            XCTFail("Expected close session envelope")
+        }
+    }
+
     func testConnectionManagerRegistersPhoneInManagedMode() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)

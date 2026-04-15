@@ -195,6 +195,7 @@ internal class FakeConnectionManager : ConnectionManaging {
     val respondedApprovals = mutableListOf<ApprovalCall>()
     val switchedSessions = mutableListOf<String>()
     val createdSessions = mutableListOf<CreateSessionCall>()
+    val closedSessions = mutableListOf<String>()
     var disconnectCalls = 0
 
     override suspend fun connect(host: String, port: Int) {
@@ -224,6 +225,10 @@ internal class FakeConnectionManager : ConnectionManaging {
 
     override suspend fun createSession(name: String, workingDirectory: String) {
         createdSessions += CreateSessionCall(name, workingDirectory)
+    }
+
+    override suspend fun closeSession(sessionId: String) {
+        closedSessions += sessionId
     }
 
     fun emitState(value: ConnectionState) {

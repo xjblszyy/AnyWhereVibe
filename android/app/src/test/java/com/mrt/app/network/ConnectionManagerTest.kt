@@ -243,6 +243,25 @@ class ConnectionManagerTest {
             ProtobufCodec.decode(socket.sentFrames.last()).payloadCase,
         )
     }
+
+    @Test
+    fun connectionManagerSendsCloseSessionControlWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        manager.closeSession(sessionId = "session-1")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(Mrt.Envelope.PayloadCase.SESSION, envelope.payloadCase)
+        assertEquals(
+            Mrt.SessionControl.ActionCase.CLOSE,
+            envelope.session.actionCase,
+        )
+        assertEquals("session-1", envelope.session.close.sessionId)
+    }
 }
 
 internal class StubWebSocketClient : WebSocketClientProtocol {

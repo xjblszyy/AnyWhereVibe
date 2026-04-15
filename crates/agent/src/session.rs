@@ -75,6 +75,23 @@ impl SessionManager {
         Ok(session)
     }
 
+    pub fn close(&mut self, id: &str) -> Result<()> {
+        let session = self
+            .sessions
+            .get(id)
+            .with_context(|| format!("session '{}' does not exist", id))?;
+
+        if session.status == TaskStatus::Running as i32
+            || session.status == TaskStatus::WaitingApproval as i32
+        {
+            bail!("cannot close a running session '{}'", id);
+        }
+
+        self.sessions.remove(id);
+        self.persist()?;
+        Ok(())
+    }
+
     pub fn update_status(&mut self, id: &str, status: TaskStatus) -> Result<()> {
         self.try_update_status(id, status)
     }

@@ -210,7 +210,7 @@ final class SessionViewModelTests: XCTestCase {
     func testSessionViewModelDoesNotCreateRemoteSessionWhileConnecting() async {
         let connection = StubConnectionManager()
         connection.state = .connecting
-        let viewModel = SessionViewModel(connectionManager: connection, sessions: [])
+        let viewModel = SessionViewModel(connectionManager: connection)
 
         viewModel.createSession(named: "Daily")
         await Task.yield()
@@ -223,7 +223,7 @@ final class SessionViewModelTests: XCTestCase {
     func testSessionViewModelCreatesRemoteSessionWhenConnected() async {
         let connection = StubConnectionManager()
         connection.state = .connected
-        let viewModel = SessionViewModel(connectionManager: connection, sessions: [])
+        let viewModel = SessionViewModel(connectionManager: connection)
 
         viewModel.createSession(named: "Daily")
         try? await Task.sleep(nanoseconds: 20_000_000)
@@ -234,7 +234,7 @@ final class SessionViewModelTests: XCTestCase {
     @MainActor
     func testSessionViewModelAcceptsAuthoritativeSessionUpdatesAndPreservesSelection() async {
         let connection = StubConnectionManager()
-        let viewModel = SessionViewModel(connectionManager: connection, sessions: [])
+        let viewModel = SessionViewModel(connectionManager: connection)
 
         connection.emitSessions([
             SessionModel(
@@ -275,5 +275,54 @@ final class SessionViewModelTests: XCTestCase {
 
         XCTAssertEqual(viewModel.sessions.map { $0.id }, ["session-2"])
         XCTAssertEqual(viewModel.activeSessionID, "session-2")
+    }
+
+    @MainActor
+    func testSessionViewModelClosesRemoteSessionWhenConnected() async {
+        let connection = StubConnectionManager()
+        connection.state = .connected
+        connection.emitSessions([
+            SessionModel(
+                id: "session-1",
+                name: "Main",
+                status: .idle,
+                createdAtMs: 1,
+                lastActiveMs: 2,
+                workingDirectory: "/tmp/main"
+            ),
+        ])
+        let viewModel = SessionViewModel(connectionManager: connection)
+
+        viewModel.closeSession(id: "session-1")
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(connection.closedSessions, ["session-1"])
+    }
+
+    @MainActor
+    func testSessionViewModelClosesLocalSessionAndReselectsRemainingItem() async {
+        let first = SessionModel(
+            id: "session-1",
+            name: "Main",
+            status: .idle,
+            createdAtMs: 1,
+            lastActiveMs: 2,
+            workingDirectory: "/tmp/main"
+        )
+        let second = SessionModel(
+            id: "session-2",
+            name: "Docs",
+            status: .idle,
+            createdAtMs: 3,
+            lastActiveMs: 4,
+            workingDirectory: "/tmp/docs"
+        )
+        let viewModel = SessionViewModel(connectionManager: nil, sessions: [first, second])
+
+        _ = viewModel.selectSession(id: "session-2")
+        viewModel.closeSession(id: "session-2")
+
+        XCTAssertEqual(viewModel.sessions.map(\.id), ["session-1"])
+        XCTAssertEqual(viewModel.activeSessionID, "session-1")
     }
 }

@@ -10,8 +10,8 @@ use proto_gen::agent_event::Evt;
 use proto_gen::envelope::Payload;
 use proto_gen::session_control::Action;
 use proto_gen::{
-    AgentEvent, AgentInfo, ApprovalResponse, CancelTask, CreateSession, Envelope, ErrorEvent,
-    GetStatus, Heartbeat, SendPrompt, SessionInfo, SessionListUpdate, TaskStatus,
+    AgentEvent, AgentInfo, ApprovalResponse, CancelTask, CloseSession, CreateSession, Envelope,
+    ErrorEvent, GetStatus, Heartbeat, SendPrompt, SessionInfo, SessionListUpdate, TaskStatus,
 };
 use tokio::net::{TcpListener, TcpStream};
 use tokio::sync::{broadcast, oneshot, Mutex};
@@ -529,6 +529,37 @@ async fn route_session_control(
                 },
             )
             .await?;
+        }
+        Action::Close(CloseSession { session_id }) => {
+            let result = {
+                let mut sessions = state.sessions.lock().await;
+                match sessions.close(&session_id) {
+                    Ok(()) => Ok(sessions.list()),
+                    Err(error) => Err(error),
+                }
+            };
+
+            match result {
+                Ok(session_list) => {
+                    broadcast_session_list(state, session_list);
+                }
+                Err(error) => {
+                    let message = error.to_string();
+                    let code = if message.contains("cannot close a running session") {
+                        "SESSION_BUSY"
+                    } else {
+                        "SESSION_NOT_FOUND"
+                    };
+                    send_error(
+                        write,
+                        &request_id,
+                        code,
+                        message,
+                        false,
+                    )
+                    .await?;
+                }
+            }
         }
         _ => {
             send_error(

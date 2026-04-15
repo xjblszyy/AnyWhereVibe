@@ -68,6 +68,21 @@ final class SessionViewModel: ObservableObject {
         activeSessionID = session.id
     }
 
+    func closeSession(id: String) {
+        if let connectionManager {
+            guard sessions.contains(where: { $0.id == id }) else { return }
+            Task {
+                try? await connectionManager.closeSession(id: id)
+            }
+            return
+        }
+
+        sessions.removeAll { $0.id == id }
+        if activeSessionID == id {
+            activeSessionID = sessions.first?.id
+        }
+    }
+
     private static var defaultSessions: [SessionModel] {
         [
             SessionModel(

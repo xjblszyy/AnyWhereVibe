@@ -8,6 +8,7 @@ use proto_gen::envelope::Payload;
 use proto_gen::session_control::Action;
 use proto_gen::{
     AgentCommand, AgentEvent, AgentInfo, ApprovalRequest, ApprovalResponse, ClientType,
+    CloseSession,
     CreateSession, Envelope, ErrorEvent, GetStatus, Handshake, Heartbeat, SendPrompt,
     SessionControl, SessionInfo, SessionListUpdate, TaskStatusUpdate,
 };
@@ -213,6 +214,20 @@ impl TestClient {
         }
     }
 
+    pub async fn close_session(&mut self, session_id: &str) {
+        self.send_envelope(Envelope {
+            protocol_version: 1,
+            request_id: new_request_id(),
+            timestamp_ms: now_ms(),
+            payload: Some(Payload::Session(SessionControl {
+                action: Some(Action::Close(CloseSession {
+                    session_id: session_id.to_owned(),
+                })),
+            })),
+        })
+        .await;
+    }
+
     pub async fn expect_session_list_update(&mut self) -> SessionListUpdate {
         loop {
             let envelope = self.next_envelope().await;
@@ -360,7 +375,7 @@ impl TestClient {
         }
     }
 
-    async fn expect_error(&mut self) -> ErrorEvent {
+    pub async fn expect_error(&mut self) -> ErrorEvent {
         loop {
             let envelope = self.next_envelope().await;
             if let Some(Payload::Event(AgentEvent {

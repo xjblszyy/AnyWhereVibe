@@ -38,7 +38,8 @@ struct SessionSidebarView: View {
                         SessionRowView(
                             session: session,
                             isActive: session.id == viewModel.activeSessionID,
-                            onSelect: { viewModel.selectSession(id: session.id) }
+                            onSelect: { viewModel.selectSession(id: session.id) },
+                            onClose: { viewModel.closeSession(id: session.id) }
                         )
                     }
                 }

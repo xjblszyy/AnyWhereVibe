@@ -89,6 +89,27 @@ class SessionViewModel(
         activeSessionId = session.id
     }
 
+    fun closeSession(id: String) {
+        connectionManager?.let { manager ->
+            if (sessions.none { it.id == id }) {
+                return
+            }
+            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    manager.closeSession(sessionId = id)
+                } catch (_: Throwable) {
+                }
+            }
+            return
+        }
+
+        sessions = sessions.filterNot { it.id == id }
+        activeSessionId = when {
+            activeSessionId != id -> activeSessionId
+            else -> sessions.firstOrNull()?.id
+        }
+    }
+
     private fun applyAuthoritativeSessions(authoritativeSessions: List<SessionModel>) {
         val previousSelection = activeSessionId
         sessions = authoritativeSessions

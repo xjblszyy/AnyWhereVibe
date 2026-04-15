@@ -3,6 +3,7 @@ package com.mrt.app.features.sessions
 import androidx.activity.ComponentActivity
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createAndroidComposeRule
+import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import androidx.compose.ui.test.performTextInput
@@ -16,6 +17,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import mrt.Mrt
+import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
@@ -62,6 +64,42 @@ class SessionsScreenInstrumentedTest {
         composeRule.onNodeWithText("Daily").assertIsDisplayed()
     }
 
+    @Test
+    fun localSessionsScreenClosesSessionFromList() {
+        val first = SessionModel(
+            id = "session-1",
+            name = "Main Session",
+            status = Mrt.TaskStatus.IDLE,
+            createdAtMs = 1,
+            lastActiveMs = 1,
+            workingDirectory = "/tmp/main",
+        )
+        val second = SessionModel(
+            id = "session-2",
+            name = "Docs",
+            status = Mrt.TaskStatus.IDLE,
+            createdAtMs = 2,
+            lastActiveMs = 2,
+            workingDirectory = "/tmp/docs",
+        )
+        val viewModel = SessionViewModel(initialSessions = listOf(first, second))
+
+        composeRule.setContent {
+            MRTTheme(darkTheme = true) {
+                SessionsScreen(
+                    viewModel = viewModel,
+                    connectionState = ConnectionState.CONNECTED,
+                )
+            }
+        }
+
+        composeRule.onNodeWithText("Docs").assertIsDisplayed()
+        composeRule.onNodeWithTag("closeSession:session-2").performClick()
+        composeRule.runOnIdle {
+            assertTrue(viewModel.sessions.none { it.id == "session-2" })
+        }
+    }
+
     private class FakeSessionConnectionManager : ConnectionManaging {
         private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)
         override val state: StateFlow<ConnectionState> = _state.asStateFlow()
@@ -82,5 +120,6 @@ class SessionsScreenInstrumentedTest {
         override suspend fun cancelTask(sessionId: String) = Unit
         override suspend fun switchSession(sessionId: String) = Unit
         override suspend fun createSession(name: String, workingDirectory: String) = Unit
+        override suspend fun closeSession(sessionId: String) = Unit
     }
 }

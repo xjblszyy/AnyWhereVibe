@@ -111,6 +111,7 @@ class ChatScreenInstrumentedTest {
         override suspend fun cancelTask(sessionId: String) = Unit
         override suspend fun switchSession(sessionId: String) = Unit
         override suspend fun createSession(name: String, workingDirectory: String) = Unit
+        override suspend fun closeSession(sessionId: String) = Unit
 
         data class PromptCall(val prompt: String, val sessionId: String)
     }

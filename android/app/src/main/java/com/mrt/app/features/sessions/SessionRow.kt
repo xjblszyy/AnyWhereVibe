@@ -11,10 +11,13 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.mrt.app.core.models.SessionModel
 import com.mrt.app.designsystem.components.GHBadge
+import com.mrt.app.designsystem.components.GHButton
+import com.mrt.app.designsystem.components.GHButtonStyle
 import com.mrt.app.designsystem.theme.GHColors
 import com.mrt.app.designsystem.theme.GHRadii
 import com.mrt.app.designsystem.theme.GHSpacing
@@ -26,6 +29,7 @@ fun SessionRow(
     session: SessionModel,
     isActive: Boolean,
     onSelect: () -> Unit,
+    onClose: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     Surface(
@@ -57,10 +61,21 @@ fun SessionRow(
                     maxLines = 1,
                 )
             }
-            GHBadge(
-                text = session.status.displayName,
-                color = if (isActive) GHColors.AccentBlue else GHColors.TextTertiary,
-            )
+            Column(verticalArrangement = Arrangement.spacedBy(GHSpacing.Xs)) {
+                GHBadge(
+                    text = session.status.displayName,
+                    color = if (isActive) GHColors.AccentBlue else GHColors.TextTertiary,
+                )
+                if (onClose != null) {
+                    GHButton(
+                        text = "Close",
+                        onClick = onClose,
+                        style = GHButtonStyle.Danger,
+                        enabled = session.isClosable,
+                        modifier = Modifier.testTag("closeSession:${session.id}"),
+                    )
+                }
+            }
         }
     }
 }
@@ -77,3 +92,6 @@ private val Mrt.TaskStatus.displayName: String
         Mrt.TaskStatus.UNRECOGNIZED,
         -> "Unknown"
     }
+
+private val SessionModel.isClosable: Boolean
+    get() = status != Mrt.TaskStatus.RUNNING && status != Mrt.TaskStatus.WAITING_APPROVAL

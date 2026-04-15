@@ -171,3 +171,63 @@ async fn server_allows_only_one_of_multiple_concurrent_prompts_to_start() {
     assert_eq!(started, 1, "only one concurrent prompt may start");
     assert_eq!(rejected, 3, "all remaining prompts must be rejected");
 }
+
+#[tokio::test]
+async fn server_closes_session_and_broadcasts_updated_session_list() {
+    let server = agent::test_support::spawn_mock_server().await;
+    let mut client = TestClient::connect(server.ws_url()).await;
+
+    client.handshake_ios().await;
+    let first = client.create_session("One", "/tmp/one").await;
+    let second = client.create_session("Two", "/tmp/two").await;
+    loop {
+        let sessions = client.expect_session_list_update().await;
+        if sessions.sessions.iter().any(|session| session.session_id == first.session_id)
+            && sessions.sessions.iter().any(|session| session.session_id == second.session_id)
+        {
+            break;
+        }
+    }
+
+    client.close_session(&first.session_id).await;
+
+    let sessions = loop {
+        let sessions = client.expect_session_list_update().await;
+        let ids: Vec<_> = sessions
+            .sessions
+            .iter()
+            .map(|session| session.session_id.clone())
+            .collect();
+        if !ids.contains(&first.session_id) && ids.contains(&second.session_id) {
+            break sessions;
+        }
+    };
+    let ids: Vec<_> = sessions.sessions.into_iter().map(|session| session.session_id).collect();
+    assert!(!ids.contains(&first.session_id));
+    assert!(ids.contains(&second.session_id));
+}
+
+#[tokio::test]
+async fn server_rejects_close_for_running_session_but_keeps_connection_open() {
+    let server = agent::test_support::spawn_mock_server().await;
+    let mut client = TestClient::connect(server.ws_url()).await;
+
+    client.handshake_ios().await;
+    let session = client.create_session("Busy", "/tmp/busy").await;
+    loop {
+        let sessions = client.expect_session_list_update().await;
+        if sessions.sessions.iter().any(|item| item.session_id == session.session_id) {
+            break;
+        }
+    }
+
+    client.send_prompt(&session.session_id, "busy").await;
+    let started = client.expect_prompt_start_or_error(&session.session_id).await;
+    assert!(matches!(started, PromptStartOutcome::Started));
+
+    client.close_session(&session.session_id).await;
+    let error = client.expect_error().await;
+    assert!(!error.fatal);
+    assert_eq!(error.code, "SESSION_BUSY");
+    client.expect_connection_alive().await;
+}
