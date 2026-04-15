@@ -1,0 +1,30 @@
+# syntax=docker/dockerfile:1
+
+FROM rust:1.86-bookworm AS builder
+WORKDIR /src
+
+COPY Cargo.toml Cargo.lock ./
+COPY crates ./crates
+COPY proto ./proto
+
+RUN cargo build -p connection-node --release
+
+FROM debian:bookworm-slim AS runtime
+
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends ca-certificates libsqlite3-0 \
+    && rm -rf /var/lib/apt/lists/*
+
+RUN useradd --system --home /var/lib/mrt --create-home --shell /usr/sbin/nologin mrt
+RUN install -d -m 0755 -o mrt -g mrt /etc/mrt /var/lib/mrt
+
+COPY --from=builder /src/target/release/connection-node /usr/local/bin/connection-node
+
+EXPOSE 443
+VOLUME ["/etc/mrt", "/var/lib/mrt"]
+
+USER mrt:mrt
+WORKDIR /var/lib/mrt
+
+ENTRYPOINT ["/usr/local/bin/connection-node"]
+CMD ["--config", "/etc/mrt/connection-node.toml", "run"]

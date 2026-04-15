@@ -1,0 +1,25 @@
+[Unit]
+Description=AnyWhereVibe connection-node
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=mrt
+Group=mrt
+WorkingDirectory=/var/lib/mrt
+ExecStart=/usr/local/bin/connection-node --config /etc/mrt/connection-node.toml run
+Restart=on-failure
+RestartSec=5s
+AmbientCapabilities=CAP_NET_BIND_SERVICE
+CapabilityBoundingSet=CAP_NET_BIND_SERVICE
+NoNewPrivileges=true
+PrivateTmp=true
+ProtectHome=true
+ProtectSystem=strict
+ReadWritePaths=/var/lib/mrt
+StateDirectory=mrt
+LimitNOFILE=65536
+
+[Install]
+WantedBy=multi-user.target
