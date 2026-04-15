@@ -210,12 +210,19 @@ If any precondition fails, the screen shows a banner and no fake repository cont
 
 The summary card shows:
 
-- repository root name
 - branch
 - tracking text when present
 - clean/dirty badge
 
 No buttons or write actions appear in this slice.
+
+Repository root identity is intentionally not shown in this slice.
+
+Reasoning:
+
+- the current successful `GitStatusResult` contract does not carry repository root metadata
+- adding repository identity would force either a proto change or ad hoc derivation rules on mobile
+- branch, tracking, and dirty state are sufficient for the first read-only slice
 
 ### Changed Files
 
@@ -280,6 +287,15 @@ Git data refreshes automatically when:
 - the active session changes
 - the client reconnects to the agent
 
+The Git screen is snapshot-based in this slice, not live-subscribed to background repository mutations while the screen remains open.
+
+“No stale Git display” in this document means:
+
+- no cached or offline snapshot is shown when live agent/session preconditions fail
+- the screen always derives its data from a fresh request on the defined refresh triggers
+
+It does not mean continuous background refresh while the user stays on the Git tab.
+
 ### Empty and Error Copy
 
 Mobile clients must distinguish these user-facing cases:
@@ -299,14 +315,22 @@ Git errors are business-level errors carried via `GitResult.error`, not transpor
 
 Required cases:
 
-- unknown `session_id`
-- session has unusable or missing `working_dir`
-- no repository found for the resolved working directory
-- unsupported Git operation in this slice
-- diff path not found in the current repository change set
-- git command failure for status or diff
+- unknown `session_id` -> `GIT_SESSION_NOT_FOUND`
+- session has unusable or missing `working_dir` -> `GIT_WORKDIR_INVALID`
+- no repository found for the resolved working directory -> `GIT_REPO_NOT_FOUND`
+- unsupported Git operation in this slice -> `GIT_OP_UNSUPPORTED`
+- diff path not found in the current repository change set -> `GIT_DIFF_PATH_INVALID`
+- git command failure for status or diff -> `GIT_COMMAND_FAILED`
 
 The websocket connection stays healthy after these errors.
+
+Mobile mapping:
+
+- `GIT_SESSION_NOT_FOUND`, `GIT_WORKDIR_INVALID`, `GIT_REPO_NOT_FOUND` -> `Unavailable`
+- `GIT_COMMAND_FAILED` during status -> `StatusError`
+- `GIT_COMMAND_FAILED` during diff -> `DiffError`
+- `GIT_DIFF_PATH_INVALID` -> `DiffError`
+- `GIT_OP_UNSUPPORTED` is not expected in normal first-slice mobile flows and should surface as a generic feature error banner if encountered
 
 ## Implementation Shape
 
