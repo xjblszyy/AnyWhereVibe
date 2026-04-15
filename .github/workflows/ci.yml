@@ -102,16 +102,7 @@ jobs:
 
       - name: Run targeted iOS tests
         run: |
-          xcodebuild \
-            -project ios/MRT.xcodeproj \
-            -scheme MRT \
-            -destination "id=${{ steps.simulator.outputs.device_id }}" \
-            -only-testing:MRTTests/PreferencesTests \
-            -only-testing:MRTTests/SettingsValidationTests \
-            -only-testing:MRTTests/ChatViewModelTests \
-            -only-testing:MRTTests/ConnectionManagerTests \
-            -only-testing:MRTTests/SessionViewModelTests \
-            test
+          IOS_SIMULATOR_ID="${{ steps.simulator.outputs.device_id }}" bash scripts/test-ios.sh
 
       - name: Run iOS agent E2E harness
         env:
