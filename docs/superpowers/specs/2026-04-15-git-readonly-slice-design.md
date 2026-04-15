@@ -191,6 +191,8 @@ Required behavior:
 - run repository discovery as `git -C <working_dir> rev-parse --show-toplevel`
 - if the command succeeds, the returned path is the resolved repository root
 - if the command fails, treat the session as non-Git
+- after discovery succeeds, run `git -C <repo_root> rev-parse --is-bare-repository`
+- if that returns `true`, treat the session as non-Git and return `GIT_REPO_NOT_FOUND`
 
 This intentionally inherits Git's own handling for:
 
@@ -349,6 +351,8 @@ To keep mobile rendering bounded, the agent must cap diff payload size in this s
 - if the diff exceeds the cap, truncate on a line boundary early enough to keep the final payload, including the truncation marker line below, within 256 KiB total
 - when truncation happens, append this exact final context line:
   ` ... diff truncated by agent at 262144 bytes ...`
+
+This truncation is computed on UTF-8 byte length of the final `GitDiffResult.diff` string, not character count. The truncation marker line must be preceded by a newline so it is always the final standalone context line in the diff payload.
 
 This truncation is presentation-oriented rather than protocol-oriented. The response still uses normal `GitDiffResult`, and truncation is signaled only by that exact final context line embedded inside `GitDiffResult.diff`.
 
