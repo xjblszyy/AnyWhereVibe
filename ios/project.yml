@@ -61,3 +61,21 @@ targets:
         CODE_SIGN_IDENTITY[sdk=iphonesimulator*]: ""
         CODE_SIGNING_ALLOWED[sdk=iphonesimulator*]: NO
         CODE_SIGNING_REQUIRED[sdk=iphonesimulator*]: NO
+  MRTWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: MRTWatch
+    dependencies:
+      - package: SwiftProtobuf
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: com.anywherevibe.mrt.watch
+        PRODUCT_NAME: MRTWatch
+        GENERATE_INFOPLIST_FILE: YES
+        TARGETED_DEVICE_FAMILY: "4"
+        CODE_SIGN_IDENTITY[sdk=watchsimulator*]: ""
+        CODE_SIGNING_ALLOWED[sdk=watchsimulator*]: NO
+        CODE_SIGNING_REQUIRED[sdk=watchsimulator*]: NO
+    scheme: {}
