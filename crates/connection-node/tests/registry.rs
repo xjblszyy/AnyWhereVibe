@@ -1,9 +1,11 @@
 use std::sync::Arc;
+use std::time::Duration;
 
 use connection_node::db::Database;
 use connection_node::registry::DeviceRegistry;
 use proto_gen::{DeviceRegister, DeviceType};
 use tokio::sync::mpsc;
+use tokio::time::timeout;
 
 #[tokio::test]
 async fn valid_token_register_makes_device_visible_online() {
@@ -73,8 +75,8 @@ async fn unregister_removes_device_from_online_map_and_updates_last_seen() {
     let registry = DeviceRegistry::new(Arc::clone(&db));
     let (tx, _rx) = mpsc::channel(4);
 
-    registry
-        .register(
+    let registration = registry
+        .register_with_handle(
             DeviceRegister {
                 device_id: "alice-mac".into(),
                 auth_token: "mrt_ak_alice1234567890abcd".into(),
@@ -88,7 +90,7 @@ async fn unregister_removes_device_from_online_map_and_updates_last_seen() {
         .expect("register device");
 
     registry
-        .unregister(user_id, "alice-mac")
+        .unregister(user_id, "alice-mac", registration.connection_id)
         .await
         .expect("unregister");
 
@@ -287,4 +289,64 @@ async fn list_devices_for_user_uses_persisted_state_and_online_enrichment() {
     assert_eq!(online.display_name, "Online Mac");
     assert!(online.is_online);
     assert_eq!(online.last_seen_ms, 0);
+}
+
+#[tokio::test]
+async fn stale_disconnect_does_not_unregister_newer_same_device_connection() {
+    let db = Arc::new(Database::open_in_memory().expect("open db"));
+    db.insert_user("alice", "mrt_ak_alice1234567890abcd")
+        .expect("insert user");
+    let user_id = db.list_users().expect("list users")[0].id;
+    let registry = DeviceRegistry::new(Arc::clone(&db));
+    let register = DeviceRegister {
+        device_id: "alice-mac".into(),
+        auth_token: "mrt_ak_alice1234567890abcd".into(),
+        device_type: DeviceType::Agent as i32,
+        display_name: "Alice Mac".into(),
+        agent_version: "1.0.0".into(),
+    };
+
+    let (old_tx, mut old_rx) = mpsc::channel(4);
+    let old_connection = registry
+        .register_with_handle(register.clone(), old_tx)
+        .await
+        .expect("old register");
+
+    let (new_tx, mut new_rx) = mpsc::channel(4);
+    let new_connection = registry
+        .register_with_handle(register, new_tx)
+        .await
+        .expect("new register");
+
+    registry
+        .unregister(user_id, "alice-mac", old_connection.connection_id)
+        .await
+        .expect("stale unregister");
+
+    let devices = registry.list_devices_for_user(user_id).await;
+    assert_eq!(devices.len(), 1);
+    assert!(devices[0].is_online);
+
+    let sender = registry
+        .get_sender_for_user(user_id, "alice-mac")
+        .await
+        .expect("sender");
+    sender.send(vec![5, 4, 3]).await.expect("send to current");
+
+    let current = timeout(Duration::from_secs(1), new_rx.recv())
+        .await
+        .expect("new recv timeout")
+        .expect("new recv");
+    assert_eq!(current, vec![5, 4, 3]);
+    match timeout(Duration::from_millis(200), old_rx.recv()).await {
+        Err(_) => {}
+        Ok(None) => {}
+        Ok(Some(payload)) => panic!("old receiver unexpectedly received data: {payload:?}"),
+    }
+
+    registry
+        .unregister(user_id, "alice-mac", new_connection.connection_id)
+        .await
+        .expect("current unregister");
+    assert!(!registry.list_devices_for_user(user_id).await[0].is_online);
 }

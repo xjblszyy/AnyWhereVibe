@@ -72,6 +72,13 @@ impl SessionRouter {
             .await
             .ok_or_else(|| anyhow!("target device must belong to the same user and be online"))?;
 
+        if !matches!(
+            phone.device_type,
+            DeviceType::Phone | DeviceType::DeviceWatch
+        ) {
+            return Err(anyhow!("requester must be a phone-class device"));
+        }
+
         if agent.device_type != DeviceType::Agent {
             return Err(anyhow!("target device must be an online agent"));
         }

@@ -43,7 +43,7 @@ pub struct ServerConfig {
 impl Default for ServerConfig {
     fn default() -> Self {
         Self {
-            listen_addr: "0.0.0.0:443".to_string(),
+            listen_addr: "0.0.0.0:8443".to_string(),
             mode: NodeMode::SelfHosted,
         }
     }

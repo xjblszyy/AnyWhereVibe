@@ -142,13 +142,19 @@ async fn handle_ws(socket: WebSocket, state: AppState) {
     };
 
     let register_device_id = register.device_id.clone();
-    let register_result = state.registry.register(register, send_tx.clone()).await;
-    let register_ack = match register_result {
-        Ok(ack) => ack,
-        Err(error) => DeviceRegisterAck {
-            success: false,
-            message: error.to_string(),
-        },
+    let register_result = state
+        .registry
+        .register_with_handle(register, send_tx.clone())
+        .await;
+    let (register_ack, connection_id) = match register_result {
+        Ok(result) => (result.ack, result.connection_id),
+        Err(error) => (
+            DeviceRegisterAck {
+                success: false,
+                message: error.to_string(),
+            },
+            0,
+        ),
     };
     let _ = send_envelope(
         &send_tx,
@@ -237,7 +243,7 @@ async fn handle_ws(socket: WebSocket, state: AppState) {
         .await;
     let _ = state
         .registry
-        .unregister(user_id, &register_device_id)
+        .unregister(user_id, &register_device_id, connection_id)
         .await;
     let _ = close_tx.send(true);
     drop(send_tx);

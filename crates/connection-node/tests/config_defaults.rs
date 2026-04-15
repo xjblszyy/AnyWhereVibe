@@ -8,7 +8,7 @@ fn defaults_use_self_hosted_sqlite_storage() {
     let config = AppConfig::default();
 
     assert_eq!(config.server.mode, NodeMode::SelfHosted);
-    assert_eq!(config.server.listen_addr, "0.0.0.0:443");
+    assert_eq!(config.server.listen_addr, "0.0.0.0:8443");
     assert_eq!(config.storage.kind, StorageKind::Sqlite);
     assert_eq!(config.storage.path, "./mrt-node.db");
     assert_eq!(config.log.level, "info");

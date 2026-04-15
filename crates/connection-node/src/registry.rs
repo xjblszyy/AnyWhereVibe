@@ -1,4 +1,5 @@
 use std::collections::HashMap;
+use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -11,16 +12,26 @@ use crate::db::Database;
 pub struct DeviceRegistry {
     db: Arc<Database>,
     online: RwLock<HashMap<DeviceKey, OnlineDevice>>,
+    next_connection_id: AtomicU64,
 }
 
 #[derive(Clone, Debug)]
 pub struct OnlineDevice {
+    pub connection_id: u64,
     pub user_id: i64,
     pub device_id: String,
     pub device_type: DeviceType,
     pub display_name: String,
     pub ws_tx: mpsc::Sender<Vec<u8>>,
     pub connected_at: Instant,
+}
+
+#[derive(Clone, Debug)]
+pub struct RegisteredDevice {
+    pub ack: DeviceRegisterAck,
+    pub connection_id: u64,
+    pub user_id: i64,
+    pub device_id: String,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Hash)]
@@ -34,6 +45,7 @@ impl DeviceRegistry {
         Self {
             db,
             online: RwLock::new(HashMap::new()),
+            next_connection_id: AtomicU64::new(1),
         }
     }
 
@@ -42,31 +54,46 @@ impl DeviceRegistry {
         msg: DeviceRegister,
         ws_tx: mpsc::Sender<Vec<u8>>,
     ) -> Result<DeviceRegisterAck> {
+        Ok(self.register_with_handle(msg, ws_tx).await?.ack)
+    }
+
+    pub async fn register_with_handle(
+        &self,
+        msg: DeviceRegister,
+        ws_tx: mpsc::Sender<Vec<u8>>,
+    ) -> Result<RegisteredDevice> {
         let user = self
             .db
             .find_active_user_by_token(&msg.auth_token)?
             .ok_or_else(|| anyhow!("invalid auth token"))?;
         let device_type =
             DeviceType::try_from(msg.device_type).map_err(|_| anyhow!("invalid device type"))?;
+        let connection_id = self.next_connection_id.fetch_add(1, Ordering::Relaxed);
 
         self.db
             .upsert_device(user.id, &msg.device_id, msg.device_type, &msg.display_name)?;
 
         let device_key = DeviceKey::new(user.id, &msg.device_id);
         let online_device = OnlineDevice {
+            connection_id,
             user_id: user.id,
-            device_id: msg.device_id,
+            device_id: msg.device_id.clone(),
             device_type,
-            display_name: msg.display_name,
+            display_name: msg.display_name.clone(),
             ws_tx,
             connected_at: Instant::now(),
         };
 
         self.online.write().await.insert(device_key, online_device);
 
-        Ok(DeviceRegisterAck {
-            success: true,
-            message: "registered".to_string(),
+        Ok(RegisteredDevice {
+            ack: DeviceRegisterAck {
+                success: true,
+                message: "registered".to_string(),
+            },
+            connection_id,
+            user_id: user.id,
+            device_id: msg.device_id,
         })
     }
 
@@ -77,12 +104,26 @@ impl DeviceRegistry {
             .map(|user| user.id))
     }
 
-    pub async fn unregister(&self, user_id: i64, device_id: &str) -> Result<()> {
-        let removed = self
-            .online
-            .write()
-            .await
-            .remove(&DeviceKey::new(user_id, device_id));
+    pub async fn unregister(
+        &self,
+        user_id: i64,
+        device_id: &str,
+        connection_id: u64,
+    ) -> Result<()> {
+        let removed = {
+            let mut online = self.online.write().await;
+            let key = DeviceKey::new(user_id, device_id);
+            if online
+                .get(&key)
+                .map(|device| device.connection_id == connection_id)
+                .unwrap_or(false)
+            {
+                online.remove(&key)
+            } else {
+                None
+            }
+        };
+
         if removed.is_some() {
             self.db
                 .update_device_last_seen(user_id, device_id, current_timestamp_ms()?)?;

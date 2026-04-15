@@ -152,6 +152,52 @@ async fn bytes_forwarded_increments() {
     assert_eq!(session.bytes_forwarded, 7);
 }
 
+#[tokio::test]
+async fn connect_for_user_rejects_non_phone_requester() {
+    let db = Arc::new(Database::open_in_memory().expect("open db"));
+    db.insert_user("alice", "mrt_ak_alice1234567890abcd")
+        .expect("insert user");
+    let user_id = db.list_users().expect("list users")[0].id;
+    let registry = Arc::new(DeviceRegistry::new(Arc::clone(&db)));
+    let (agent_one_tx, _agent_one_rx) = mpsc::channel(4);
+    let (agent_two_tx, _agent_two_rx) = mpsc::channel(4);
+
+    registry
+        .register(
+            DeviceRegister {
+                device_id: "alice-agent-1".into(),
+                auth_token: "mrt_ak_alice1234567890abcd".into(),
+                device_type: DeviceType::Agent as i32,
+                display_name: "Alice Agent 1".into(),
+                agent_version: "1.0.0".into(),
+            },
+            agent_one_tx,
+        )
+        .await
+        .expect("register agent one");
+    registry
+        .register(
+            DeviceRegister {
+                device_id: "alice-agent-2".into(),
+                auth_token: "mrt_ak_alice1234567890abcd".into(),
+                device_type: DeviceType::Agent as i32,
+                display_name: "Alice Agent 2".into(),
+                agent_version: "1.0.0".into(),
+            },
+            agent_two_tx,
+        )
+        .await
+        .expect("register agent two");
+
+    let router = SessionRouter::new(registry);
+    let err = router
+        .connect_for_user(user_id, "alice-agent-1", "alice-agent-2")
+        .await
+        .expect_err("agent requester should fail");
+
+    assert!(err.to_string().contains("phone"));
+}
+
 async fn setup_same_user_registry() -> (
     Arc<Database>,
     Arc<DeviceRegistry>,
