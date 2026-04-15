@@ -115,6 +115,7 @@ Proto reality for this slice:
 - the concrete request body is `GitOperation`
 - responses are carried in `Envelope.payload = git_result`
 - the concrete response body is `GitResult`
+- `Envelope.request_id` is the request/response correlation key already present in the protocol and must be echoed back unchanged by the agent for all Git responses, including errors
 - when this document says `GitOperation.status` or `GitOperation.diff`, it refers to the actual `GitOperation.op` oneof field on the wire
 - when this document mentions `GitStatusReq` or `GitDiffReq`, it refers only to the generated nested payload types occupying those oneof fields, not a separate transport envelope
 
@@ -246,6 +247,19 @@ Path contract:
 - paths with spaces or non-ASCII characters are allowed and must round-trip unchanged
 - path comparison is byte-for-byte on the normalized UTF-8 path string emitted by the agent
 
+Porcelain `-z` parsing rules:
+
+- parse the output as NUL-delimited records
+- the leading `##` branch record is still parsed as text
+- all file path records are parsed from the raw NUL-delimited path payload, not line-based text splitting
+- because `--no-renames` is required, rename/copy records are not expected; if Git still emits one, treat it as `modified` using the destination path
+
+Examples:
+
+- ` M\0src/main.rs\0` -> `path = "src/main.rs"`, `status = "modified"`
+- ` D\0docs/spec.md\0` -> `path = "docs/spec.md"`, `status = "deleted"`
+- `??\0dir/naïve file.txt\0` -> `path = "dir/naïve file.txt"`, `status = "untracked"`
+
 Status mapping rules:
 
 - this slice is worktree-first, not all-changes-first
@@ -283,6 +297,13 @@ Rules:
 - only files currently reported as changed by that fresh worktree-first status computation are valid diff targets
 - a diff request for a path that is under the repo root but is no longer changed at diff time must return `GIT_DIFF_TARGET_STALE`
 - the diff payload is a unified diff string suitable for existing `GHDiffView` rendering
+
+Deleted-file diff behavior:
+
+- deleted paths are valid diff targets in this slice
+- deleted tracked files still use `git -C <repo_root> diff --no-ext-diff --no-renames --unified=3 -- <path>`
+- the file itself does not need to exist on disk for deleted-file diff generation
+- only untracked-file diff generation requires filesystem existence checks and canonicalization of the target file path
 
 Normalization algorithm for incoming `GitDiffReq.path`:
 
@@ -437,6 +458,13 @@ Both iOS and Android should model the same conceptual states.
 
 This split is important: a diff failure must not discard an otherwise valid Git status response.
 
+Client application rule for races:
+
+- mobile clients must apply Git responses only if both of these are true:
+  - the response `request_id` matches an in-flight Git request they still care about
+  - the response `session_id` still matches the currently active session
+- for repeated status or diff refreshes, the client uses latest-wins semantics per active session and discards older in-flight results that arrive late
+
 ## UI Behavior
 
 ### Refresh Triggers
@@ -481,6 +509,7 @@ Representation:
 - `ErrorEvent.code` carries the stable Git error code string
 - `ErrorEvent.message` carries human-readable detail
 - `ErrorEvent.fatal` is always `false` for Git slice errors in this document
+- `GitResult.session_id` must always echo the raw request `session_id` string, including the empty string, so clients can route errors deterministically
 
 Required cases:
 
