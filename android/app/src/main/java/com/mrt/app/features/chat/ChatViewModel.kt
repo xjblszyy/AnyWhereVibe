@@ -129,8 +129,6 @@ class ChatViewModel(
         }
         lastConnectionConfiguration = configuration
         if (mode != ConnectionMode.DIRECT) {
-            connectionManager.disconnect()
-            connectionState = connectionManager.state.value
             return
         }
 

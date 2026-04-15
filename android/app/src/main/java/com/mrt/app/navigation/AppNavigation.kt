@@ -1,5 +1,7 @@
 package com.mrt.app.navigation
 
+import android.os.Build
+import android.provider.Settings
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
@@ -67,11 +69,27 @@ fun AppNavigation() {
     val destination = AppDestination.valueOf(selectedDestination)
 
     LaunchedEffect(preferenceSnapshot.connectionConfigurationSignature) {
-        chatViewModel.connectIfNeeded(
-            host = preferenceSnapshot.directHost,
-            port = preferenceSnapshot.directPort,
-            mode = preferenceSnapshot.connectionMode,
-        )
+        if (preferenceSnapshot.connectionMode == com.mrt.app.core.storage.ConnectionMode.MANAGED) {
+            if (
+                preferenceSnapshot.nodeUrl.isNotBlank() &&
+                preferenceSnapshot.authToken.isNotBlank() &&
+                preferenceSnapshot.managedTargetDeviceId.isNotBlank()
+            ) {
+                connectionManager.connectManaged(
+                    nodeUrl = preferenceSnapshot.nodeUrl,
+                    authToken = preferenceSnapshot.authToken,
+                    deviceId = managedPhoneDeviceId(context),
+                    displayName = managedPhoneDisplayName(),
+                    targetDeviceId = preferenceSnapshot.managedTargetDeviceId,
+                )
+            }
+        } else {
+            chatViewModel.connectIfNeeded(
+                host = preferenceSnapshot.directHost,
+                port = preferenceSnapshot.directPort,
+                mode = preferenceSnapshot.connectionMode,
+            )
+        }
     }
 
     Scaffold(
@@ -105,9 +123,28 @@ fun AppNavigation() {
                 AppDestination.Files -> FilesPlaceholderScreen(modifier = Modifier.padding(innerPadding))
                 AppDestination.Settings -> SettingsScreen(
                     preferences = preferences,
+                    connectionManager = connectionManager,
                     modifier = Modifier.padding(innerPadding),
                 )
             }
         }
     }
+}
+
+private fun managedPhoneDeviceId(context: android.content.Context): String {
+    val androidId = Settings.Secure.getString(context.contentResolver, Settings.Secure.ANDROID_ID)
+    return if (androidId.isNullOrBlank()) {
+        "android-phone"
+    } else {
+        "android-$androidId"
+    }
+}
+
+private fun managedPhoneDisplayName(): String {
+    val manufacturer = Build.MANUFACTURER.orEmpty().trim()
+    val model = Build.MODEL.orEmpty().trim()
+    return listOf(manufacturer, model)
+        .filter { it.isNotBlank() }
+        .joinToString(" ")
+        .ifBlank { "Android Phone" }
 }

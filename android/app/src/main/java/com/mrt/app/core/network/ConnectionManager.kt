@@ -2,6 +2,7 @@ package com.mrt.app.core.network
 
 import com.mrt.app.core.models.ChatMessage
 import com.mrt.app.core.models.SessionModel
+import com.mrt.app.core.storage.ConnectionMode
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -69,13 +70,26 @@ class ConnectionManager(
     private val _sessions = MutableStateFlow<List<SessionModel>>(emptyList())
     override val sessions: StateFlow<List<SessionModel>> = _sessions.asStateFlow()
 
+    private val _devices = MutableStateFlow<List<Mrt.DeviceInfo>>(emptyList())
+    val devices: StateFlow<List<Mrt.DeviceInfo>> = _devices.asStateFlow()
+
     private var heartbeatJob: Job? = null
     private var timeoutJob: Job? = null
     private var reconnectJob: Job? = null
     private var handshakeSucceeded = false
+    private var nodeRegistrationSucceeded = false
     private var lastInboundMessageAt: Long? = null
     private var endpointUrl: String? = null
     private var connectionAttemptId: String = UUID.randomUUID().toString()
+    private var connectionMode: ConnectionMode = ConnectionMode.DIRECT
+    private var nodeRegistration: NodeRegistration? = null
+    private var pendingTargetDeviceId: String? = null
+
+    private data class NodeRegistration(
+        val authToken: String,
+        val deviceId: String,
+        val displayName: String,
+    )
 
     override suspend fun connect(host: String, port: Int) {
         val trimmedHost = host.trim()
@@ -86,6 +100,8 @@ class ConnectionManager(
         val url = "ws://$trimmedHost:$port/"
         val attemptId = UUID.randomUUID().toString()
         synchronized(lock) {
+            connectionMode = ConnectionMode.DIRECT
+            nodeRegistration = null
             endpointUrl = url
             connectionAttemptId = attemptId
             reconnectJob?.cancel()
@@ -101,9 +117,52 @@ class ConnectionManager(
         }
     }
 
+    suspend fun connectManaged(
+        nodeUrl: String,
+        authToken: String,
+        deviceId: String,
+        displayName: String,
+        targetDeviceId: String? = null,
+    ) {
+        val trimmedNodeUrl = nodeUrl.trim()
+        if (!trimmedNodeUrl.startsWith("ws://") && !trimmedNodeUrl.startsWith("wss://")) {
+            throw ConnectionManagerError.InvalidEndpoint
+        }
+
+        val registration = NodeRegistration(
+            authToken = authToken.trim(),
+            deviceId = deviceId.trim(),
+            displayName = displayName.trim(),
+        )
+        val attemptId = UUID.randomUUID().toString()
+        synchronized(lock) {
+            connectionMode = ConnectionMode.MANAGED
+            nodeRegistration = registration
+            pendingTargetDeviceId = targetDeviceId
+            endpointUrl = trimmedNodeUrl
+            connectionAttemptId = attemptId
+            reconnectJob?.cancel()
+            reconnectJob = null
+        }
+
+        try {
+            establishManagedConnection(
+                url = trimmedNodeUrl,
+                registration = registration,
+                connectionState = ConnectionState.CONNECTING,
+                attemptId = attemptId,
+            )
+        } catch (error: CancellationException) {
+            throw error
+        } catch (_: Throwable) {
+            transitionToReconnecting()
+        }
+    }
+
     override fun disconnect() {
         synchronized(lock) {
             endpointUrl = null
+            nodeRegistration = null
             connectionAttemptId = UUID.randomUUID().toString()
             reconnectJob?.cancel()
             reconnectJob = null
@@ -185,6 +244,28 @@ class ConnectionManager(
         sendEnvelope(makeEnvelope { setSession(control) })
     }
 
+    suspend fun requestDeviceList() {
+        ensureManagedRegistered()
+        sendEnvelope(
+            makeEnvelope {
+                setDeviceListRequest(Mrt.DeviceListRequest.getDefaultInstance())
+            },
+        )
+    }
+
+    suspend fun connectToDevice(targetDeviceId: String) {
+        ensureManagedRegistered()
+        sendEnvelope(
+            makeEnvelope {
+                setConnectToDevice(
+                    Mrt.ConnectToDevice.newBuilder()
+                        .setTargetDeviceId(targetDeviceId)
+                        .build(),
+                )
+            },
+        )
+    }
+
     private suspend fun establishConnection(url: String, connectionState: ConnectionState, attemptId: String) {
         ensureActiveAttempt(attemptId)
         teardownSocket()
@@ -196,6 +277,35 @@ class ConnectionManager(
         ensureActiveAttempt(attemptId)
         sendEnvelope(makeHandshakeEnvelope())
         startHandshakeTimeoutLoop(attemptId)
+    }
+
+    private suspend fun establishManagedConnection(
+        url: String,
+        registration: NodeRegistration,
+        connectionState: ConnectionState,
+        attemptId: String,
+    ) {
+        ensureActiveAttempt(attemptId)
+        teardownSocket()
+        ensureActiveAttempt(attemptId)
+        configureSocketCallbacks(attemptId)
+        _state.value = connectionState
+        ensureActiveAttempt(attemptId)
+        socket.connect(url)
+        ensureActiveAttempt(attemptId)
+        sendEnvelope(
+            makeEnvelope {
+                setDeviceRegister(
+                    Mrt.DeviceRegister.newBuilder()
+                        .setDeviceId(registration.deviceId)
+                        .setAuthToken(registration.authToken)
+                        .setDeviceType(Mrt.DeviceType.PHONE)
+                        .setDisplayName(registration.displayName)
+                        .setAgentVersion("1.0.0")
+                        .build(),
+                )
+            },
+        )
     }
 
     private fun configureSocketCallbacks(attemptId: String) {
@@ -215,6 +325,7 @@ class ConnectionManager(
         }
 
         var shouldReconnect = false
+        var shouldSendManagedHandshake = false
         synchronized(lock) {
             if (attemptId != connectionAttemptId) {
                 return
@@ -222,49 +333,92 @@ class ConnectionManager(
 
             lastInboundMessageAt = nowMs()
 
-            if (envelope.payloadCase != Mrt.Envelope.PayloadCase.EVENT) {
-                return
-            }
-
-            when (envelope.event.evtCase) {
-                Mrt.AgentEvent.EvtCase.AGENT_INFO -> {
-                    if (!handshakeSucceeded) {
-                        handshakeSucceeded = true
+            when (envelope.payloadCase) {
+                Mrt.Envelope.PayloadCase.EVENT -> {
+                    when (envelope.event.evtCase) {
+                        Mrt.AgentEvent.EvtCase.AGENT_INFO -> {
+                            if (!handshakeSucceeded) {
+                                handshakeSucceeded = true
+                                _state.value = ConnectionState.CONNECTED
+                                lastInboundMessageAt = nowMs()
+                                startHeartbeatLoop()
+                                startInboundTimeoutLoop(attemptId)
+                            }
+                        }
+                        Mrt.AgentEvent.EvtCase.APPROVAL_REQUEST -> _state.value = ConnectionState.SHOWING_APPROVAL
+                        Mrt.AgentEvent.EvtCase.STATUS_UPDATE -> {
+                            _state.value = when (envelope.event.statusUpdate.status) {
+                                Mrt.TaskStatus.RUNNING -> ConnectionState.LOADING
+                                Mrt.TaskStatus.WAITING_APPROVAL -> ConnectionState.SHOWING_APPROVAL
+                                Mrt.TaskStatus.COMPLETED,
+                                Mrt.TaskStatus.CANCELLED,
+                                Mrt.TaskStatus.ERROR,
+                                Mrt.TaskStatus.IDLE,
+                                Mrt.TaskStatus.TASK_STATUS_UNSPECIFIED,
+                                Mrt.TaskStatus.UNRECOGNIZED,
+                                null,
+                                -> ConnectionState.CONNECTED
+                            }
+                        }
+                        Mrt.AgentEvent.EvtCase.ERROR -> {
+                            if (envelope.event.error.fatal) {
+                                shouldReconnect = true
+                            }
+                        }
+                        Mrt.AgentEvent.EvtCase.CODEX_OUTPUT,
+                        Mrt.AgentEvent.EvtCase.SESSION_LIST,
+                        Mrt.AgentEvent.EvtCase.EVT_NOT_SET,
+                        -> Unit
+                        null -> Unit
+                    }
+                }
+                Mrt.Envelope.PayloadCase.DEVICE_REGISTER_ACK -> {
+                    nodeRegistrationSucceeded = envelope.deviceRegisterAck.success
+                    val pendingTarget = pendingTargetDeviceId
+                    _state.value = if (envelope.deviceRegisterAck.success && pendingTarget != null) {
+                        ConnectionState.CONNECTING
+                    } else if (envelope.deviceRegisterAck.success) {
+                        ConnectionState.CONNECTED
+                    } else {
+                        ConnectionState.DISCONNECTED
+                    }
+                    if (envelope.deviceRegisterAck.success && pendingTarget != null) {
+                        scope.launch {
+                            try {
+                                connectToDevice(pendingTarget)
+                            } catch (_: Throwable) {
+                                transitionToReconnecting()
+                            }
+                        }
+                    }
+                }
+                Mrt.Envelope.PayloadCase.DEVICE_LIST_RESPONSE -> {
+                    _devices.value = envelope.deviceListResponse.devicesList
+                }
+                Mrt.Envelope.PayloadCase.CONNECT_TO_DEVICE_ACK -> {
+                    if (envelope.connectToDeviceAck.success) {
+                        _state.value = ConnectionState.CONNECTING
+                        shouldSendManagedHandshake = true
+                        startHandshakeTimeoutLoop(attemptId)
+                    } else {
                         _state.value = ConnectionState.CONNECTED
-                        lastInboundMessageAt = nowMs()
-                        startHeartbeatLoop()
-                        startInboundTimeoutLoop(attemptId)
                     }
                 }
-                Mrt.AgentEvent.EvtCase.APPROVAL_REQUEST -> _state.value = ConnectionState.SHOWING_APPROVAL
-                Mrt.AgentEvent.EvtCase.STATUS_UPDATE -> {
-                    _state.value = when (envelope.event.statusUpdate.status) {
-                        Mrt.TaskStatus.RUNNING -> ConnectionState.LOADING
-                        Mrt.TaskStatus.WAITING_APPROVAL -> ConnectionState.SHOWING_APPROVAL
-                        Mrt.TaskStatus.COMPLETED,
-                        Mrt.TaskStatus.CANCELLED,
-                        Mrt.TaskStatus.ERROR,
-                        Mrt.TaskStatus.IDLE,
-                        Mrt.TaskStatus.TASK_STATUS_UNSPECIFIED,
-                        Mrt.TaskStatus.UNRECOGNIZED,
-                        null,
-                        -> ConnectionState.CONNECTED
-                    }
-                }
-                Mrt.AgentEvent.EvtCase.ERROR -> {
-                    if (envelope.event.error.fatal) {
-                        shouldReconnect = true
-                    }
-                }
-                Mrt.AgentEvent.EvtCase.CODEX_OUTPUT,
-                Mrt.AgentEvent.EvtCase.SESSION_LIST,
-                Mrt.AgentEvent.EvtCase.EVT_NOT_SET,
-                -> Unit
-                null -> Unit
+                else -> return
             }
 
             dispatcher.apply(envelope)
             syncDispatcherOutputsLocked()
+        }
+
+        if (shouldSendManagedHandshake) {
+            scope.launch {
+                try {
+                    sendEnvelope(makeHandshakeEnvelope())
+                } catch (_: Throwable) {
+                    transitionToReconnecting()
+                }
+            }
         }
 
         if (shouldReconnect) {
@@ -391,11 +545,22 @@ class ConnectionManager(
                 var shouldRetry = false
                 try {
                     ensureActiveAttempt(attemptId)
-                    establishConnection(
-                        url = reconnectUrl,
-                        connectionState = ConnectionState.RECONNECTING,
-                        attemptId = attemptId,
-                    )
+                    when (connectionMode) {
+                        ConnectionMode.DIRECT -> establishConnection(
+                            url = reconnectUrl,
+                            connectionState = ConnectionState.RECONNECTING,
+                            attemptId = attemptId,
+                        )
+                        ConnectionMode.MANAGED -> {
+                            val registration = synchronized(lock) { nodeRegistration } ?: return@launch
+                            establishManagedConnection(
+                                url = reconnectUrl,
+                                registration = registration,
+                                connectionState = ConnectionState.RECONNECTING,
+                                attemptId = attemptId,
+                            )
+                        }
+                    }
                 } catch (_: CancellationException) {
                 } catch (_: Throwable) {
                     shouldRetry = true
@@ -424,6 +589,7 @@ class ConnectionManager(
         heartbeatJob = null
         timeoutJob = null
         handshakeSucceeded = false
+        nodeRegistrationSucceeded = false
         lastInboundMessageAt = null
 
         socket.onReceive = null
@@ -444,6 +610,13 @@ class ConnectionManager(
     private fun ensureConnected() {
         val connected = synchronized(lock) { handshakeSucceeded }
         if (!connected) {
+            throw ConnectionManagerError.NotConnected
+        }
+    }
+
+    private fun ensureManagedRegistered() {
+        val registered = synchronized(lock) { nodeRegistrationSucceeded }
+        if (!registered) {
             throw ConnectionManagerError.NotConnected
         }
     }

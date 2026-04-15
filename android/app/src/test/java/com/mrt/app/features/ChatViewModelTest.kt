@@ -48,15 +48,16 @@ class ChatViewModelTest {
     }
 
     @Test
-    fun connectIfNeededDisconnectsWhenManagedModeSelected() = runTest {
+    fun connectIfNeededLeavesManagedModeToDedicatedNodeFlow() = runTest {
         val connection = FakeConnectionManager()
         val viewModel = ChatViewModel(connectionManager = connection, scope = backgroundScope)
 
         viewModel.connectIfNeeded(host = "127.0.0.1", port = 9876, mode = ConnectionMode.DIRECT)
         viewModel.connectIfNeeded(host = "127.0.0.1", port = 9876, mode = ConnectionMode.MANAGED)
 
-        assertEquals(1, connection.disconnectCalls)
-        assertEquals(ConnectionState.DISCONNECTED, viewModel.connectionState)
+        assertEquals(1, connection.connectCalls.size)
+        assertEquals(0, connection.disconnectCalls)
+        assertEquals(ConnectionState.CONNECTED, viewModel.connectionState)
     }
 
     @Test

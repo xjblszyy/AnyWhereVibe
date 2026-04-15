@@ -142,6 +142,107 @@ class ConnectionManagerTest {
         assertEquals("approval-1", manager.pendingApproval.value?.approvalId)
         assertEquals(listOf("session-1"), manager.sessions.value.map { it.id })
     }
+
+    @Test
+    fun connectionManagerRegistersPhoneInManagedMode() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connectManaged(
+            nodeUrl = "ws://relay.example.com/ws",
+            authToken = "mrt_ak_example1234567890",
+            deviceId = "pixel-1",
+            displayName = "Pixel 1",
+        )
+
+        assertEquals("ws://relay.example.com/ws", socket.connectedUrl)
+        val registerEnvelope = ProtobufCodec.decode(socket.sentFrames.first())
+        assertEquals(Mrt.Envelope.PayloadCase.DEVICE_REGISTER, registerEnvelope.payloadCase)
+
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success = true))
+
+        assertEquals(ConnectionState.CONNECTED, manager.state.value)
+    }
+
+    @Test
+    fun connectionManagerPublishesManagedDeviceList() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connectManaged(
+            nodeUrl = "ws://relay.example.com/ws",
+            authToken = "mrt_ak_example1234567890",
+            deviceId = "pixel-1",
+            displayName = "Pixel 1",
+        )
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success = true))
+
+        manager.requestDeviceList()
+
+        assertEquals(
+            Mrt.Envelope.PayloadCase.DEVICE_LIST_REQUEST,
+            ProtobufCodec.decode(socket.sentFrames.last()).payloadCase,
+        )
+
+        socket.pushIncomingEnvelope(makeDeviceListResponseEnvelope())
+
+        assertEquals(listOf("agent-1"), manager.devices.value.map { it.deviceId })
+    }
+
+    @Test
+    fun connectionManagerConnectToDeviceSendsHandshakeAndTransitionsToAgentConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connectManaged(
+            nodeUrl = "ws://relay.example.com/ws",
+            authToken = "mrt_ak_example1234567890",
+            deviceId = "pixel-1",
+            displayName = "Pixel 1",
+        )
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success = true))
+
+        manager.connectToDevice(targetDeviceId = "agent-1")
+
+        assertEquals(
+            Mrt.Envelope.PayloadCase.CONNECT_TO_DEVICE,
+            ProtobufCodec.decode(socket.sentFrames.last()).payloadCase,
+        )
+
+        socket.pushIncomingEnvelope(makeConnectToDeviceAckEnvelope(success = true))
+        delay(10)
+
+        assertEquals(
+            Mrt.Envelope.PayloadCase.HANDSHAKE,
+            ProtobufCodec.decode(socket.sentFrames.last()).payloadCase,
+        )
+
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        assertEquals(ConnectionState.CONNECTED, manager.state.value)
+    }
+
+    @Test
+    fun connectionManagerAutoConnectsToSavedManagedTargetAfterRegisterAck() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connectManaged(
+            nodeUrl = "ws://relay.example.com/ws",
+            authToken = "mrt_ak_example1234567890",
+            deviceId = "pixel-1",
+            displayName = "Pixel 1",
+            targetDeviceId = "agent-1",
+        )
+
+        socket.pushIncomingEnvelope(makeDeviceRegisterAckEnvelope(success = true))
+        delay(10)
+
+        assertEquals(
+            Mrt.Envelope.PayloadCase.CONNECT_TO_DEVICE,
+            ProtobufCodec.decode(socket.sentFrames.last()).payloadCase,
+        )
+    }
 }
 
 internal class StubWebSocketClient : WebSocketClientProtocol {
@@ -247,6 +348,43 @@ internal fun makeSessionListEnvelope(): Mrt.Envelope =
                         )
                         .build(),
                 )
+                .build(),
+        )
+        .build()
+
+internal fun makeDeviceRegisterAckEnvelope(success: Boolean): Mrt.Envelope =
+    Mrt.Envelope.newBuilder()
+        .setDeviceRegisterAck(
+            Mrt.DeviceRegisterAck.newBuilder()
+                .setSuccess(success)
+                .setMessage(if (success) "registered" else "invalid auth token")
+                .build(),
+        )
+        .build()
+
+internal fun makeDeviceListResponseEnvelope(): Mrt.Envelope =
+    Mrt.Envelope.newBuilder()
+        .setDeviceListResponse(
+            Mrt.DeviceListResponse.newBuilder()
+                .addDevices(
+                    Mrt.DeviceInfo.newBuilder()
+                        .setDeviceId("agent-1")
+                        .setDeviceType(Mrt.DeviceType.AGENT)
+                        .setDisplayName("Office Mac")
+                        .setIsOnline(true)
+                        .build(),
+                )
+                .build(),
+        )
+        .build()
+
+internal fun makeConnectToDeviceAckEnvelope(success: Boolean): Mrt.Envelope =
+    Mrt.Envelope.newBuilder()
+        .setConnectToDeviceAck(
+            Mrt.ConnectToDeviceAck.newBuilder()
+                .setSuccess(success)
+                .setMessage(if (success) "connected" else "device unavailable")
+                .setConnectionType(Mrt.ConnectionType.RELAY)
                 .build(),
         )
         .build()
