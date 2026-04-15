@@ -15,6 +15,16 @@ pub struct UserRecord {
     pub created_at: i64,
 }
 
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct DeviceRecord {
+    pub id: i64,
+    pub user_id: i64,
+    pub device_id: String,
+    pub device_type: i32,
+    pub display_name: Option<String>,
+    pub last_seen_ms: Option<u64>,
+}
+
 pub struct Database {
     connection: Mutex<Connection>,
 }
@@ -94,6 +104,86 @@ impl Database {
             return Err(anyhow!("user '{name}' not found"));
         }
         Ok(())
+    }
+
+    pub fn find_active_user_by_token(&self, token: &str) -> Result<Option<UserRecord>> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            "SELECT id, name, token, active, created_at FROM users WHERE token = ?1 AND active = 1",
+        )?;
+        let mut rows = statement.query(params![token])?;
+
+        if let Some(row) = rows.next()? {
+            return Ok(Some(UserRecord {
+                id: row.get(0)?,
+                name: row.get(1)?,
+                token: row.get(2)?,
+                active: row.get::<_, i64>(3)? != 0,
+                created_at: row.get(4)?,
+            }));
+        }
+
+        Ok(None)
+    }
+
+    pub fn upsert_device(
+        &self,
+        user_id: i64,
+        device_id: &str,
+        device_type: i32,
+        display_name: &str,
+    ) -> Result<()> {
+        let connection = self.connection()?;
+        connection.execute(
+            r#"
+            INSERT INTO devices (user_id, device_id, device_type, display_name, last_seen)
+            VALUES (?1, ?2, ?3, ?4, NULL)
+            ON CONFLICT(device_id) DO UPDATE SET
+                user_id = excluded.user_id,
+                device_type = excluded.device_type,
+                display_name = excluded.display_name
+            "#,
+            params![user_id, device_id, device_type, display_name],
+        )?;
+        Ok(())
+    }
+
+    pub fn update_device_last_seen(&self, device_id: &str, last_seen_ms: u64) -> Result<()> {
+        let connection = self.connection()?;
+        let changed = connection.execute(
+            "UPDATE devices SET last_seen = ?1 WHERE device_id = ?2",
+            params![last_seen_ms as i64, device_id],
+        )?;
+        if changed == 0 {
+            return Err(anyhow!("device '{device_id}' not found"));
+        }
+        Ok(())
+    }
+
+    pub fn list_devices_for_user(&self, user_id: i64) -> Result<Vec<DeviceRecord>> {
+        let connection = self.connection()?;
+        let mut statement = connection.prepare(
+            r#"
+            SELECT id, user_id, device_id, device_type, display_name, last_seen
+            FROM devices
+            WHERE user_id = ?1
+            ORDER BY device_id ASC
+            "#,
+        )?;
+        let rows = statement.query_map(params![user_id], |row| {
+            let last_seen = row.get::<_, Option<i64>>(5)?;
+            Ok(DeviceRecord {
+                id: row.get(0)?,
+                user_id: row.get(1)?,
+                device_id: row.get(2)?,
+                device_type: row.get(3)?,
+                display_name: row.get(4)?,
+                last_seen_ms: last_seen.map(|value| value as u64),
+            })
+        })?;
+
+        let devices = rows.collect::<rusqlite::Result<Vec<_>>>()?;
+        Ok(devices)
     }
 
     fn initialize(&self) -> Result<()> {
