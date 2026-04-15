@@ -83,6 +83,29 @@ final class SessionViewModel: ObservableObject {
         }
     }
 
+    func cancelTask(id: String) {
+        if let connectionManager {
+            guard sessions.contains(where: { $0.id == id }) else { return }
+            Task {
+                try? await connectionManager.cancelTask(sessionID: id)
+            }
+            return
+        }
+
+        let updatedAt = Self.nowMilliseconds()
+        sessions = sessions.map { session in
+            guard session.id == id else { return session }
+            return SessionModel(
+                id: session.id,
+                name: session.name,
+                status: .cancelled,
+                createdAtMs: session.createdAtMs,
+                lastActiveMs: updatedAt,
+                workingDirectory: session.workingDirectory
+            )
+        }
+    }
+
     private static var defaultSessions: [SessionModel] {
         [
             SessionModel(

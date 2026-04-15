@@ -70,6 +70,7 @@ fun SessionDrawer(
                         session = session,
                         isActive = session.id == viewModel.activeSessionId,
                         onSelect = { viewModel.selectSession(session.id) },
+                        onCancel = { viewModel.cancelTask(session.id) },
                         onClose = { viewModel.closeSession(session.id) },
                     )
                 }

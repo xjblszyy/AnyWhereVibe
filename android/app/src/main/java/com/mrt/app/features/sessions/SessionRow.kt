@@ -29,6 +29,7 @@ fun SessionRow(
     session: SessionModel,
     isActive: Boolean,
     onSelect: () -> Unit,
+    onCancel: (() -> Unit)? = null,
     onClose: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
@@ -66,12 +67,19 @@ fun SessionRow(
                     text = session.status.displayName,
                     color = if (isActive) GHColors.AccentBlue else GHColors.TextTertiary,
                 )
-                if (onClose != null) {
+                if (onCancel != null && session.isCancellable) {
+                    GHButton(
+                        text = "Cancel",
+                        onClick = onCancel,
+                        style = GHButtonStyle.Danger,
+                        modifier = Modifier.testTag("cancelTask:${session.id}"),
+                    )
+                }
+                if (onClose != null && session.isClosable) {
                     GHButton(
                         text = "Close",
                         onClick = onClose,
                         style = GHButtonStyle.Danger,
-                        enabled = session.isClosable,
                         modifier = Modifier.testTag("closeSession:${session.id}"),
                     )
                 }
@@ -95,3 +103,6 @@ private val Mrt.TaskStatus.displayName: String
 
 private val SessionModel.isClosable: Boolean
     get() = status != Mrt.TaskStatus.RUNNING && status != Mrt.TaskStatus.WAITING_APPROVAL
+
+private val SessionModel.isCancellable: Boolean
+    get() = status == Mrt.TaskStatus.RUNNING || status == Mrt.TaskStatus.WAITING_APPROVAL

@@ -100,6 +100,35 @@ class SessionsScreenInstrumentedTest {
         }
     }
 
+    @Test
+    fun localSessionsScreenCancelsRunningSessionFromList() {
+        val session = SessionModel(
+            id = "session-1",
+            name = "Main Session",
+            status = Mrt.TaskStatus.RUNNING,
+            createdAtMs = 1,
+            lastActiveMs = 1,
+            workingDirectory = "/tmp/main",
+        )
+        val viewModel = SessionViewModel(initialSessions = listOf(session))
+
+        composeRule.setContent {
+            MRTTheme(darkTheme = true) {
+                SessionsScreen(
+                    viewModel = viewModel,
+                    connectionState = ConnectionState.CONNECTED,
+                )
+            }
+        }
+
+        composeRule.onNodeWithTag("cancelTask:session-1").performClick()
+        composeRule.runOnIdle {
+            assertTrue(
+                viewModel.sessions.singleOrNull()?.status == Mrt.TaskStatus.CANCELLED,
+            )
+        }
+    }
+
     private class FakeSessionConnectionManager : ConnectionManaging {
         private val _state = MutableStateFlow(ConnectionState.DISCONNECTED)
         override val state: StateFlow<ConnectionState> = _state.asStateFlow()

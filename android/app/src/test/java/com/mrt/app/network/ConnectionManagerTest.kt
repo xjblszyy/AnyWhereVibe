@@ -262,6 +262,25 @@ class ConnectionManagerTest {
         )
         assertEquals("session-1", envelope.session.close.sessionId)
     }
+
+    @Test
+    fun connectionManagerSendsCancelTaskCommandWhenConnected() = runBlocking {
+        val socket = StubWebSocketClient()
+        val manager = ConnectionManager(socket = socket)
+
+        manager.connect(host = "127.0.0.1", port = 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        manager.cancelTask(sessionId = "session-1")
+
+        val envelope = ProtobufCodec.decode(socket.sentFrames.last())
+        assertEquals(Mrt.Envelope.PayloadCase.COMMAND, envelope.payloadCase)
+        assertEquals(
+            Mrt.AgentCommand.CmdCase.CANCEL_TASK,
+            envelope.command.cmdCase,
+        )
+        assertEquals("session-1", envelope.command.cancelTask.sessionId)
+    }
 }
 
 internal class StubWebSocketClient : WebSocketClientProtocol {

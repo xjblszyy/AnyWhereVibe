@@ -4,6 +4,7 @@ struct SessionRowView: View {
     let session: SessionModel
     let isActive: Bool
     let onSelect: () -> Void
+    let onCancel: (() -> Void)?
     let onClose: (() -> Void)?
 
     var body: some View {
@@ -36,10 +37,12 @@ struct SessionRowView: View {
             }
             .buttonStyle(.plain)
 
-            if let onClose {
+            if let onCancel, session.isCancellable {
+                GHButton(title: "Cancel", icon: nil, style: .danger, action: onCancel)
+            }
+
+            if let onClose, session.isClosable {
                 GHButton(title: "Close", icon: nil, style: .danger, action: onClose)
-                    .opacity(session.isClosable ? 1 : 0.5)
-                    .disabled(!session.isClosable)
             }
         }
     }
@@ -69,5 +72,9 @@ private extension Mrt_TaskStatus {
 private extension SessionModel {
     var isClosable: Bool {
         status != .running && status != .waitingApproval
+    }
+
+    var isCancellable: Bool {
+        status == .running || status == .waitingApproval
     }
 }

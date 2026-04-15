@@ -77,6 +77,7 @@ final class StubConnectionManager: ConnectionManaging {
     var sentPrompts: [(prompt: String, sessionID: String)] = []
     var respondedApprovals: [(approvalID: String, approved: Bool)] = []
     var createdSessions: [(name: String, workingDirectory: String)] = []
+    var cancelledSessions: [String] = []
     var closedSessions: [String] = []
     var connectCalls: [(host: String, port: Int)] = []
     var connectError: Error?
@@ -110,6 +111,10 @@ final class StubConnectionManager: ConnectionManaging {
 
     func createSession(name: String, workingDirectory: String) async throws {
         createdSessions.append((name: name, workingDirectory: workingDirectory))
+    }
+
+    func cancelTask(sessionID: String) async throws {
+        cancelledSessions.append(sessionID)
     }
 
     func closeSession(id: String) async throws {

@@ -110,6 +110,33 @@ class SessionViewModel(
         }
     }
 
+    fun cancelTask(id: String) {
+        connectionManager?.let { manager ->
+            if (sessions.none { it.id == id }) {
+                return
+            }
+            scope.launch(start = CoroutineStart.UNDISPATCHED) {
+                try {
+                    manager.cancelTask(sessionId = id)
+                } catch (_: Throwable) {
+                }
+            }
+            return
+        }
+
+        val updatedAt = System.currentTimeMillis()
+        sessions = sessions.map { session ->
+            if (session.id != id) {
+                session
+            } else {
+                session.copy(
+                    status = Mrt.TaskStatus.CANCELLED,
+                    lastActiveMs = updatedAt,
+                )
+            }
+        }
+    }
+
     private fun applyAuthoritativeSessions(authoritativeSessions: List<SessionModel>) {
         val previousSelection = activeSessionId
         sessions = authoritativeSessions

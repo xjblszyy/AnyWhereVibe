@@ -300,6 +300,28 @@ final class SessionViewModelTests: XCTestCase {
     }
 
     @MainActor
+    func testSessionViewModelCancelsRemoteTaskWhenSessionExists() async {
+        let connection = StubConnectionManager()
+        connection.state = .connected
+        connection.emitSessions([
+            SessionModel(
+                id: "session-1",
+                name: "Main",
+                status: .running,
+                createdAtMs: 1,
+                lastActiveMs: 2,
+                workingDirectory: "/tmp/main"
+            ),
+        ])
+        let viewModel = SessionViewModel(connectionManager: connection)
+
+        viewModel.cancelTask(id: "session-1")
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(connection.cancelledSessions, ["session-1"])
+    }
+
+    @MainActor
     func testSessionViewModelClosesLocalSessionAndReselectsRemainingItem() async {
         let first = SessionModel(
             id: "session-1",
@@ -323,6 +345,24 @@ final class SessionViewModelTests: XCTestCase {
         viewModel.closeSession(id: "session-2")
 
         XCTAssertEqual(viewModel.sessions.map(\.id), ["session-1"])
+        XCTAssertEqual(viewModel.activeSessionID, "session-1")
+    }
+
+    @MainActor
+    func testSessionViewModelCancelsLocalSessionAndMarksItCancelled() async {
+        let session = SessionModel(
+            id: "session-1",
+            name: "Main",
+            status: .running,
+            createdAtMs: 1,
+            lastActiveMs: 2,
+            workingDirectory: "/tmp/main"
+        )
+        let viewModel = SessionViewModel(connectionManager: nil, sessions: [session])
+
+        viewModel.cancelTask(id: "session-1")
+
+        XCTAssertEqual(viewModel.sessions.map(\.status), [.cancelled])
         XCTAssertEqual(viewModel.activeSessionID, "session-1")
     }
 }

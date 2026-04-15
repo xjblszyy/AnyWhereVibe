@@ -195,6 +195,7 @@ internal class FakeConnectionManager : ConnectionManaging {
     val respondedApprovals = mutableListOf<ApprovalCall>()
     val switchedSessions = mutableListOf<String>()
     val createdSessions = mutableListOf<CreateSessionCall>()
+    val cancelledSessions = mutableListOf<String>()
     val closedSessions = mutableListOf<String>()
     var disconnectCalls = 0
 
@@ -217,7 +218,9 @@ internal class FakeConnectionManager : ConnectionManaging {
         _pendingApproval.value = null
     }
 
-    override suspend fun cancelTask(sessionId: String) = Unit
+    override suspend fun cancelTask(sessionId: String) {
+        cancelledSessions += sessionId
+    }
 
     override suspend fun switchSession(sessionId: String) {
         switchedSessions += sessionId

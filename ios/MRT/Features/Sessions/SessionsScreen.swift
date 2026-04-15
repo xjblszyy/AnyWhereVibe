@@ -28,6 +28,7 @@ struct SessionsScreen: View {
                             session: session,
                             isActive: session.id == viewModel.activeSessionID,
                             onSelect: { viewModel.selectSession(id: session.id) },
+                            onCancel: { viewModel.cancelTask(id: session.id) },
                             onClose: { viewModel.closeSession(id: session.id) }
                         )
                     }

@@ -118,6 +118,33 @@ class SessionViewModelTest {
     }
 
     @Test
+    fun sessionViewModelCancelsRemoteTaskWhenSessionExists() = runTest {
+        val connection = FakeConnectionManager()
+        connection.emitState(ConnectionState.CONNECTED)
+        connection.emitSessions(
+            listOf(
+                SessionModel(
+                    id = "session-1",
+                    name = "Main",
+                    status = Mrt.TaskStatus.RUNNING,
+                    createdAtMs = 1,
+                    lastActiveMs = 2,
+                    workingDirectory = "/tmp/main",
+                ),
+            ),
+        )
+        val viewModel = SessionViewModel(
+            connectionManager = connection,
+            scope = backgroundScope,
+        )
+
+        viewModel.cancelTask("session-1")
+        advanceUntilIdle()
+
+        assertEquals(listOf("session-1"), connection.cancelledSessions)
+    }
+
+    @Test
     fun sessionViewModelClosesLocalSessionAndReselectsRemainingItem() = runTest {
         val first = SessionModel(
             id = "session-1",
@@ -141,6 +168,24 @@ class SessionViewModelTest {
         viewModel.closeSession("session-2")
 
         assertEquals(listOf("session-1"), viewModel.sessions.map { it.id })
+        assertEquals("session-1", viewModel.activeSessionId)
+    }
+
+    @Test
+    fun sessionViewModelCancelsLocalSessionAndMarksItCancelled() = runTest {
+        val session = SessionModel(
+            id = "session-1",
+            name = "Main",
+            status = Mrt.TaskStatus.RUNNING,
+            createdAtMs = 1,
+            lastActiveMs = 2,
+            workingDirectory = "/tmp/main",
+        )
+        val viewModel = SessionViewModel(initialSessions = listOf(session))
+
+        viewModel.cancelTask("session-1")
+
+        assertEquals(Mrt.TaskStatus.CANCELLED, viewModel.sessions.single().status)
         assertEquals("session-1", viewModel.activeSessionId)
     }
 }

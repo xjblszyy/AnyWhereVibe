@@ -331,6 +331,24 @@ final class ConnectionManagerTests: XCTestCase {
         }
     }
 
+    func testConnectionManagerSendsCancelTaskCommand() async throws {
+        let socket = StubWebSocketClient()
+        let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
+
+        try await manager.connect(host: "127.0.0.1", port: 9876)
+        socket.pushIncomingEnvelope(makeAgentInfoEnvelope())
+
+        try await manager.cancelTask(sessionID: "session-1")
+
+        let cancelEnvelope = try ProtobufCodec.decode(socket.sentData.last!)
+        if case .command(let command) = cancelEnvelope.payload,
+           case .cancelTask(let cancel)? = command.cmd {
+            XCTAssertEqual(cancel.sessionID, "session-1")
+        } else {
+            XCTFail("Expected cancel task command envelope")
+        }
+    }
+
     func testConnectionManagerRegistersPhoneInManagedMode() async throws {
         let socket = StubWebSocketClient()
         let manager = ConnectionManager(socket: socket, heartbeatInterval: 15, timeoutInterval: 45)
