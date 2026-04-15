@@ -22,6 +22,15 @@ final class SessionViewModel: ObservableObject {
 
     func selectSession(id: String) {
         activeSessionID = id
+
+        guard let connectionManager,
+              sessions.contains(where: { $0.id == id }) else {
+            return
+        }
+
+        Task {
+            try? await connectionManager.switchSession(to: id)
+        }
     }
 
     func canCreateSession(connectionState: ConnectionState? = nil) -> Bool {

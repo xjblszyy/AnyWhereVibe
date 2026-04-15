@@ -28,7 +28,17 @@ protocol ConnectionManaging: AnyObject {
     func disconnect()
     func sendPrompt(_ prompt: String, sessionID: String) async throws
     func respondToApproval(_ approvalID: String, approved: Bool) async throws
+    func cancelTask(sessionID: String) async throws
+    func switchSession(to sessionID: String) async throws
     func createSession(name: String, workingDirectory: String) async throws
+}
+
+extension ConnectionManaging {
+    func cancelTask(sessionID: String) async throws {
+    }
+
+    func switchSession(to sessionID: String) async throws {
+    }
 }
 
 final class ConnectionManager: ConnectionManaging {
@@ -147,6 +157,36 @@ final class ConnectionManager: ConnectionManaging {
 
         try await sendEnvelope(makeEnvelope { envelope in
             envelope.command = command
+        })
+    }
+
+    func cancelTask(sessionID: String) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        var command = Mrt_AgentCommand()
+        command.cancelTask = .with { cancel in
+            cancel.sessionID = sessionID
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.command = command
+        })
+    }
+
+    func switchSession(to sessionID: String) async throws {
+        guard handshakeSucceeded else {
+            throw ConnectionManagerError.notConnected
+        }
+
+        var sessionControl = Mrt_SessionControl()
+        sessionControl.switchTo = .with { switchRequest in
+            switchRequest.sessionID = sessionID
+        }
+
+        try await sendEnvelope(makeEnvelope { envelope in
+            envelope.session = sessionControl
         })
     }
 

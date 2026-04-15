@@ -45,6 +45,7 @@
 		934D097A4C7A64CEEDD095DF /* WatchState.swift in Sources */ = {isa = PBXBuildFile; fileRef = B3C84FDF1ED4A76DB787913A /* WatchState.swift */; };
 		969FEB6D2E4914A71B71E4AE /* SessionsScreen.swift in Sources */ = {isa = PBXBuildFile; fileRef = 035BCB661695CC47EB55CEFC /* SessionsScreen.swift */; };
 		9768F6B1502E3EBA0E494A36 /* GHTabBar.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17DFC2B06CC4934022FC1585 /* GHTabBar.swift */; };
+		9D7F24B0224220070A88F924 /* PhoneWatchBridgeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 818B2904B0A248B73A258F2B /* PhoneWatchBridgeTests.swift */; };
 		A2FD3D141804548B52D94E5B /* MRTApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBA7C54D50FC7AB098801C99 /* MRTApp.swift */; };
 		A901BCAAEF3FAC5F38937CC1 /* MessageDispatcher.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60660735FFD269627BD2BCDF /* MessageDispatcher.swift */; };
 		AFC7BB134F1E5E5AD8E867F9 /* SettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EF487066F75325F569275751 /* SettingsView.swift */; };
@@ -60,6 +61,7 @@
 		D9A1891C56A6CF82CD5C70C8 /* Preferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9FDA1120BF368FE03AC0D5A9 /* Preferences.swift */; };
 		DBB10DA6336212CABFD69913 /* Mrt.pb.swift in Sources */ = {isa = PBXBuildFile; fileRef = EE43D3CC89A4B1915D1BD83E /* Mrt.pb.swift */; };
 		EAF9529A8FA5786F83A7FEE5 /* GHDiffView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C2779AF339442D54F7F4C69C /* GHDiffView.swift */; };
+		EB67B30BEB3C45833DF9E44D /* PhoneWatchBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8A3E7DEE91265B0B3713D842 /* PhoneWatchBridge.swift */; };
 		FAD0DF91DD38930BAF9B07C3 /* SwiftProtobuf in Frameworks */ = {isa = PBXBuildFile; productRef = E32A9DAE56C6D2A9614BCCF2 /* SwiftProtobuf */; };
 /* End PBXBuildFile section */
 
@@ -101,7 +103,9 @@
 		68A0AB6427CDB3659CF5B734 /* WatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchBridge.swift; sourceTree = "<group>"; };
 		7590B7191D611D4FD5145B70 /* GHBadge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GHBadge.swift; sourceTree = "<group>"; };
 		7CAA2A16195E27292271086D /* FilesPlaceholderView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FilesPlaceholderView.swift; sourceTree = "<group>"; };
+		818B2904B0A248B73A258F2B /* PhoneWatchBridgeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchBridgeTests.swift; sourceTree = "<group>"; };
 		8983AC66E8231F4CF4B0ECE3 /* MRTTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = MRTTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		8A3E7DEE91265B0B3713D842 /* PhoneWatchBridge.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PhoneWatchBridge.swift; sourceTree = "<group>"; };
 		9680C16557FE06327CB0CDCB /* SessionPickerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SessionPickerView.swift; sourceTree = "<group>"; };
 		9E5A214491A850B595F49100 /* ApprovalView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ApprovalView.swift; sourceTree = "<group>"; };
 		9F12F821EB66BF6111FD0135 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
@@ -197,6 +201,14 @@
 			path = Views;
 			sourceTree = "<group>";
 		};
+		2256A66A84F55D49699EDEB2 /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				818B2904B0A248B73A258F2B /* PhoneWatchBridgeTests.swift */,
+			);
+			path = Watch;
+			sourceTree = "<group>";
+		};
 		227B1986D629321131589F8A /* MRTWatch */ = {
 			isa = PBXGroup;
 			children = (
@@ -231,6 +243,7 @@
 				D0C18DE69A8EA9251E09A635 /* Network */,
 				C899BB2466A91966BF59A7DD /* Proto */,
 				14D3399AB89469043C099178 /* Storage */,
+				7E8924BDE303698EB4E827FC /* Watch */,
 			);
 			path = Core;
 			sourceTree = "<group>";
@@ -267,8 +280,17 @@
 				A3CFA1A24E6EB0EEF8729C5F /* Integration */,
 				E50262BDA31E1FA75533273D /* Network */,
 				A0ED6779CE27AC44150535E8 /* TestSupport */,
+				2256A66A84F55D49699EDEB2 /* Watch */,
 			);
 			path = MRTTests;
+			sourceTree = "<group>";
+		};
+		7E8924BDE303698EB4E827FC /* Watch */ = {
+			isa = PBXGroup;
+			children = (
+				8A3E7DEE91265B0B3713D842 /* PhoneWatchBridge.swift */,
+			);
+			path = Watch;
 			sourceTree = "<group>";
 		};
 		82B33F09CE7BF2829E283E9B /* Features */ = {
@@ -519,6 +541,7 @@
 				81684B204F1B78D992FFADFC /* ChatViewModelTests.swift in Sources */,
 				0C4436750731AA55A30ED64F /* ConnectionManagerTests.swift in Sources */,
 				C06E0E92FD72D6559BA28BB2 /* MessageDispatcherTests.swift in Sources */,
+				9D7F24B0224220070A88F924 /* PhoneWatchBridgeTests.swift in Sources */,
 				1B6709DAEDCF50C639E8B6E6 /* ProtobufCodecTests.swift in Sources */,
 				764CC8A374B7056D95C2066B /* TestDoubles.swift in Sources */,
 			);
@@ -567,6 +590,7 @@
 				A2FD3D141804548B52D94E5B /* MRTApp.swift in Sources */,
 				A901BCAAEF3FAC5F38937CC1 /* MessageDispatcher.swift in Sources */,
 				DBB10DA6336212CABFD69913 /* Mrt.pb.swift in Sources */,
+				EB67B30BEB3C45833DF9E44D /* PhoneWatchBridge.swift in Sources */,
 				D9A1891C56A6CF82CD5C70C8 /* Preferences.swift in Sources */,
 				C3C8A806D3798CB0F70E2459 /* PromptInputBar.swift in Sources */,
 				0FDA5FC95029758B3700D095 /* ProtobufCodec.swift in Sources */,

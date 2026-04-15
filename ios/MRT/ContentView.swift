@@ -27,18 +27,42 @@ struct ContentView: View {
     @State private var selectedTab: Tab = .chat
     @StateObject private var chatViewModel: ChatViewModel
     @StateObject private var sessionViewModel: SessionViewModel
+    @StateObject private var phoneWatchBridge: PhoneWatchBridge
     @StateObject private var preferences: Preferences
 
     init(
         connectionManager: ConnectionManaging = ConnectionManager(),
         preferences: Preferences = Preferences()
     ) {
+        let sessionViewModel = SessionViewModel(connectionManager: connectionManager)
+        let chatViewModel = ChatViewModel(connectionManager: connectionManager)
+
         _preferences = StateObject(wrappedValue: preferences)
-        _sessionViewModel = StateObject(
-            wrappedValue: SessionViewModel(connectionManager: connectionManager)
-        )
-        _chatViewModel = StateObject(
-            wrappedValue: ChatViewModel(connectionManager: connectionManager)
+        _sessionViewModel = StateObject(wrappedValue: sessionViewModel)
+        _chatViewModel = StateObject(wrappedValue: chatViewModel)
+        _phoneWatchBridge = StateObject(
+            wrappedValue: PhoneWatchBridge(
+                approvalResponder: { approvalID, approved in
+                    Task {
+                        try? await connectionManager.respondToApproval(approvalID, approved: approved)
+                    }
+                },
+                quickActionHandler: { action, sessionID in
+                    switch action {
+                    case .cancel:
+                        Task {
+                            try? await connectionManager.cancelTask(sessionID: sessionID)
+                        }
+                        return true
+                    case .retry, .continue:
+                        return false
+                    }
+                },
+                sessionSelectionHandler: { sessionID in
+                    sessionViewModel.selectSession(id: sessionID)
+                    return true
+                }
+            )
         )
     }
 
@@ -71,6 +95,15 @@ struct ContentView: View {
             )
         }
         .background(GHColors.bgPrimary.ignoresSafeArea())
+        .task(id: watchBridgeSyncSignature) {
+            phoneWatchBridge.sync(snapshot: makeWatchSnapshot())
+        }
+        .onAppear {
+            chatViewModel.activeSessionID = sessionViewModel.activeSessionID
+        }
+        .onChange(of: sessionViewModel.activeSessionID) { _, newValue in
+            chatViewModel.activeSessionID = newValue
+        }
         .task(id: preferences.connectionConfigurationSignature) {
             guard ProcessInfo.processInfo.environment["XCTestConfigurationFilePath"] == nil else {
                 return
@@ -81,6 +114,41 @@ struct ContentView: View {
                 mode: preferences.connectionMode
             )
         }
+    }
+
+    private var watchBridgeSyncSignature: String {
+        let sessionSignature = sessionViewModel.sessions
+            .map { "\($0.id):\($0.status.rawValue):\($0.lastActiveMs)" }
+            .joined(separator: "|")
+        let approvalSignature = chatViewModel.pendingApproval?.approvalID ?? "none"
+        let activeSessionSignature = sessionViewModel.activeSessionID ?? "none"
+        return [
+            "\(chatViewModel.connectionState)",
+            sessionSignature,
+            activeSessionSignature,
+            approvalSignature,
+            lastWatchSummary ?? "none",
+            chatViewModel.lastMessageSignature,
+        ].joined(separator: "::")
+    }
+
+    private var lastWatchSummary: String? {
+        chatViewModel.messages
+            .last(where: { message in
+                message.sessionID == sessionViewModel.activeSessionID && message.role != .user
+            })?
+            .content
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+    }
+
+    private func makeWatchSnapshot() -> PhoneWatchBridge.Snapshot {
+        PhoneWatchBridge.Snapshot(
+            connectionState: chatViewModel.connectionState,
+            sessions: sessionViewModel.sessions,
+            activeSessionID: sessionViewModel.activeSessionID,
+            lastSummary: lastWatchSummary,
+            pendingApproval: chatViewModel.pendingApproval
+        )
     }
 }
 
